@@ -1,0 +1,35 @@
+{
+  "name": "timeax/paykit-sdk",
+  "description": "PayKit Gateway SDK (contracts + typed payloads) for integrating multiple payment providers through strict contracts and DTO payloads.",
+  "type": "library",
+  "license": "MIT",
+  "keywords": ["payments", "payment-gateway", "sdk", "contracts", "dto"],
+  "require": {
+    "php": "^8.4",
+    "ext-json": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "PayKit": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "PayKit\\Tests\\": "tests/"
+    }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0",
+    "phpstan/phpstan": "^1.11"
+  },
+  "scripts": {
+    "test": "phpunit",
+    "analyse": "phpstan analyse"
+  },
+  "config": {
+    "sort-packages": true,
+    "optimize-autoloader": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

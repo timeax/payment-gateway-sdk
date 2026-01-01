@@ -1,0 +1,50 @@
+<?php declare(strict_types=1);
+
+namespace PayKit\Payload\Common;
+
+use JsonSerializable;
+
+final readonly class GatewayConfig implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed> $options
+     * @param array<string,mixed> $secrets
+     */
+    public function __construct(
+        public bool  $sandbox = false,
+        public array $options = [],
+        public array $secrets = [],
+    ) {}
+
+    public function isSandbox(): bool
+    {
+        return $this->sandbox;
+    }
+
+    public function option(string $key, mixed $default = null): mixed
+    {
+        return $this->options[$key] ?? $default;
+    }
+
+    public function secret(string $key, mixed $default = null): mixed
+    {
+        return $this->secrets[$key] ?? $default;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'sandbox' => $this->sandbox,
+            'options' => $this->options,
+            // NOTE: secrets intentionally excluded from jsonSerialize by default.
+        ];
+    }
+
+    /** @return array{sandbox:bool,options:array<string,mixed>} */
+    public function toPublicArray(): array
+    {
+        /** @var array{sandbox:bool,options:array<string,mixed>} $arr */
+        $arr = $this->jsonSerialize();
+        return $arr;
+    }
+}

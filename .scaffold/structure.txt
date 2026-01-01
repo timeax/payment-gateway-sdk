@@ -1,0 +1,239 @@
+src/
+  index.php
+  Pay.php
+
+  Contracts/
+    ProvidesGatewayConfigContract.php
+    # --- base / discovery ---
+    PaymentGatewayDriverContract.php
+    PaymentGatewayManifestProviderContract.php
+    PaymentGatewayAvailabilityContract.php
+    PaymentGatewayRequirementsContract.php
+
+    # --- core payments ---
+    PaymentGatewayPaymentsContract.php
+    PaymentGatewayPaymentStatusMapperContract.php
+    PaymentGatewayVerificationContract.php
+
+    # --- webhooks / events ---
+    PaymentGatewayWebhooksContract.php
+
+    # --- frontend integration ---
+    PaymentGatewayScriptsContract.php
+    PaymentGatewayUiContract.php
+    PaymentGatewayFrontendConfigContract.php
+
+    # --- saved cards / methods ---
+    PaymentGatewaySavedMethodsContract.php
+    PaymentGatewayCardTokenizationContract.php
+
+    # --- refunds / disputes ---
+    PaymentGatewayRefundsContract.php
+    PaymentGatewayDisputesContract.php
+
+    # --- virtual accounts (deep) ---
+    PaymentGatewayVirtualAccountsContract.php
+    PaymentGatewayVirtualAccountLedgerContract.php
+    PaymentGatewayVirtualAccountWithdrawalsContract.php
+    PaymentGatewayVirtualAccountWebhookWatcherContract.php
+    PaymentGatewayVirtualAccountPollingWatcherContract.php
+    PaymentGatewayVirtualAccountReconcileContract.php
+
+    # --- payouts (general) ---
+    PaymentGatewayPayoutsContract.php
+    PaymentGatewayBeneficiariesContract.php
+
+    # --- virtual cards (optional) ---
+    PaymentGatewayVirtualCardsContract.php
+
+    # --- reconciliation / diagnostics ---
+    PaymentGatewayReconcileContract.php
+    PaymentGatewayDiagnosticsContract.php
+
+  Payload/
+    Common/
+      # primitives
+      Money.php
+      Amount.php
+      Currency.php
+      Country.php
+      Reference.php
+      ProviderRef.php
+      Metadata.php
+      CanonicalPaymentStatus.php
+      CanonicalPayoutStatus.php
+      CanonicalRefundStatus.php
+
+      # config + schema
+      GatewayConfig.php
+      GatewayConfigSchema.php
+      ConfigField.php
+      ConfigFieldOption.php
+      ConfigValidationError.php
+      ValidationResult.php
+      HealthCheckResult.php
+
+      # manifest + capabilities
+      GatewayManifest.php
+      GatewayFeatureSet.php
+      GatewaySupportMatrix.php
+      SupportedCurrency.php
+      SupportedCountry.php
+      GatewayRequirements.php
+      UiManifest.php
+      UiModuleDescriptor.php
+      UiEntryDescriptor.php
+
+      # scripts
+      GatewayScript.php
+      ScriptLocation.php
+
+      # saved methods/cards
+      SavedMethod.php
+      CardSummary.php
+      CardBrand.php
+      CardFingerprint.php
+
+      # virtual accounts/cards
+      VirtualAccount.php
+      VirtualAccountBank.php
+      VirtualCardRecord.php
+
+      # payouts
+      PayoutDestination.php
+      PayoutMethod.php
+      Beneficiary.php
+
+    Requests/
+      # payments
+      PaymentInitiateRequest.php
+      PaymentVerifyRequest.php
+
+      # webhooks
+      WebhookRequest.php
+
+      # refunds/disputes
+      RefundRequest.php
+      RefundVerifyRequest.php
+      DisputeQuery.php
+
+      # saved methods/cards
+      ListMethodsRequest.php
+      GetMethodRequest.php
+      AttachMethodRequest.php
+      DetachMethodRequest.php
+      SetDefaultMethodRequest.php
+      CardTokenizeRequest.php
+
+      # virtual accounts
+      VirtualAccountCreateRequest.php
+      VirtualAccountAssignRequest.php
+      VirtualAccountGetRequest.php
+      ListVirtualAccountsRequest.php
+      DeactivateVirtualAccountRequest.php
+      VirtualAccountLedgerQuery.php
+      VirtualAccountLedgerEntryQuery.php
+      VirtualAccountWithdrawalRequest.php
+      VirtualAccountWithdrawalVerifyRequest.php
+
+      # watchers / polling
+      PollVirtualAccountEventsQuery.php
+      ReconcileQuery.php
+
+      # payouts
+      PayoutRequest.php
+      PayoutVerifyRequest.php
+      BeneficiaryCreateRequest.php
+      BeneficiaryUpdateRequest.php
+
+      # frontend config
+      FrontendConfigRequest.php
+
+    Responses/
+      # payments + next action
+      PaymentInitiateResult.php
+      NextAction.php
+      RedirectAction.php
+      InlineAction.php
+      PopupAction.php
+      QrCodeAction.php
+      InstructionsAction.php
+
+      PaymentVerifyResult.php
+
+      # webhooks
+      WebhookVerifyResult.php
+
+      # refunds/disputes
+      RefundResult.php
+      RefundStatusResult.php
+      DisputeSnapshot.php
+
+      # saved methods/cards
+      SavedMethodList.php
+      CardTokenizeResult.php
+
+      # virtual accounts
+      VirtualAccountRecord.php
+      VirtualAccountList.php
+      VirtualAccountLedgerEntry.php
+      VirtualAccountLedgerPage.php
+      VirtualAccountWithdrawalResult.php
+      VirtualAccountWithdrawalStatusResult.php
+
+      # watchers / reconcile
+      PollSpec.php
+      ReconcileResult.php
+
+      # payouts
+      PayoutResult.php
+      PayoutStatusResult.php
+      BeneficiaryList.php
+
+      # frontend config
+      FrontendConfigResult.php
+
+    Events/
+      # generic webhook normalization
+      WebhookEvent.php
+      WebhookHandleResult.php
+
+      # virtual account events (deposits/withdrawals/transfers)
+      VirtualAccountEvent.php
+      VirtualAccountEventBatch.php
+
+      # optional normalization
+      PayoutEvent.php
+      RefundEvent.php
+
+  Drivers/
+    AbstractPaymentGatewayDriver.php
+    Concerns/
+      HasConfigSchema.php
+      MapsStatuses.php
+      RedactsSecrets.php
+      BuildsManifest.php
+      ResolvesConfig.php
+
+  Manager/
+    GatewayRegistry.php
+    GatewayManager.php
+    DriverResolver.php
+
+  Support/
+    Assert.php
+    Clock.php
+    Redactor.php
+    Signature.php
+    Idempotency.php
+    Pagination.php
+    DedupeScripts.php
+
+  Exceptions/
+    GatewayDriverNotFoundException.php
+    GatewayConfigException.php
+    GatewayCapabilityException.php
+    GatewayRuntimeException.php
+
+  Types/
+    Dict.php

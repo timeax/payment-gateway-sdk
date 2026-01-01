@@ -1,0 +1,770 @@
+// src/Payload/Responses/NextAction.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+
+interface NextAction extends JsonSerializable
+{
+    public function type(): string;
+}
+
+// src/Payload/Responses/RedirectAction.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+final class RedirectAction implements NextAction
+{
+    /**
+     * @param array<string,string|int|float|bool|null> $params
+     */
+    public function __construct(
+        public readonly string $url,
+        public readonly string $method = 'GET',
+        public readonly array $params = [],
+    ) {}
+
+    public function type(): string
+    {
+        return 'redirect';
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'type' => $this->type(),
+            'url' => $this->url,
+            'method' => strtoupper($this->method),
+            'params' => $this->params,
+        ];
+    }
+}
+
+// src/Payload/Responses/InlineAction.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+final class InlineAction implements NextAction
+{
+    /** @param array<string,mixed> $clientConfig */
+    public function __construct(public readonly array $clientConfig = [])
+    {
+    }
+
+    public function type(): string
+    {
+        return 'inline';
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'type' => $this->type(),
+            'clientConfig' => $this->clientConfig,
+        ];
+    }
+}
+
+// src/Payload/Responses/PopupAction.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+final class PopupAction implements NextAction
+{
+    /** @param array<string,mixed> $clientConfig */
+    public function __construct(public readonly array $clientConfig = [])
+    {
+    }
+
+    public function type(): string
+    {
+        return 'popup';
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'type' => $this->type(),
+            'clientConfig' => $this->clientConfig,
+        ];
+    }
+}
+
+// src/Payload/Responses/QrCodeAction.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+final class QrCodeAction implements NextAction
+{
+    public function __construct(
+        public readonly string $payload,
+        public readonly ?string $format = null
+    ) {}
+
+    public function type(): string
+    {
+        return 'qrcode';
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'type' => $this->type(),
+            'payload' => $this->payload,
+            'format' => $this->format,
+        ];
+    }
+}
+
+// src/Payload/Responses/InstructionsAction.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+final class InstructionsAction implements NextAction
+{
+    /**
+     * @param array<int,string> $instructions
+     */
+    public function __construct(public readonly array $instructions)
+    {
+    }
+
+    public function type(): string
+    {
+        return 'instructions';
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'type' => $this->type(),
+            'instructions' => $this->instructions,
+        ];
+    }
+}
+
+// src/Payload/Responses/PaymentInitiateResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\CanonicalPaymentStatus;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class PaymentInitiateResult implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly Reference $reference,
+        public readonly ?ProviderRef $providerRef,
+        public readonly CanonicalPaymentStatus $status,
+        public readonly NextAction $nextAction,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'reference' => $this->reference->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'status' => $this->status->value,
+            'nextAction' => $this->nextAction->jsonSerialize(),
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/PaymentVerifyResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\CanonicalPaymentStatus;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class PaymentVerifyResult implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly ?Reference $reference,
+        public readonly ?ProviderRef $providerRef,
+        public readonly CanonicalPaymentStatus $status,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'reference' => $this->reference?->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'status' => $this->status->value,
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/WebhookVerifyResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+
+final class WebhookVerifyResult implements JsonSerializable
+{
+    public function __construct(
+        public readonly bool $ok,
+        public readonly ?string $message = null,
+    ) {}
+
+    public static function ok(): self
+    {
+        return new self(true);
+    }
+
+    public static function fail(string $message): self
+    {
+        return new self(false, $message);
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'ok' => $this->ok,
+            'message' => $this->message,
+        ];
+    }
+}
+
+// src/Payload/Responses/RefundResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\CanonicalRefundStatus;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class RefundResult implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly Reference $reference,
+        public readonly ?ProviderRef $providerRef,
+        public readonly CanonicalRefundStatus $status,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'reference' => $this->reference->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'status' => $this->status->value,
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/RefundStatusResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\CanonicalRefundStatus;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class RefundStatusResult implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly ?Reference $reference,
+        public readonly ?ProviderRef $providerRef,
+        public readonly CanonicalRefundStatus $status,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'reference' => $this->reference?->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'status' => $this->status->value,
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/DisputeSnapshot.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\Metadata;
+use UniversalPay\Payload\Common\Money;
+use UniversalPay\Payload\Common\ProviderRef;
+
+final class DisputeSnapshot implements JsonSerializable
+{
+    public readonly Metadata $meta;
+
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly ProviderRef $providerRef,
+        public readonly ?string $status = null,
+        public readonly ?Money $amount = null,
+        public readonly ?string $reason = null,
+        public readonly ?string $openedAt = null,   // ISO
+        public readonly ?string $updatedAt = null,  // ISO
+        ?Metadata $meta = null,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {
+        $this->meta = $meta ?? new Metadata([]);
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'providerRef' => $this->providerRef->toString(),
+            'status' => $this->status,
+            'amount' => $this->amount?->toArray(),
+            'reason' => $this->reason,
+            'openedAt' => $this->openedAt,
+            'updatedAt' => $this->updatedAt,
+            'meta' => $this->meta->toArray(),
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/SavedMethodList.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\SavedMethod;
+
+final class SavedMethodList implements JsonSerializable
+{
+    /** @param array<int,SavedMethod> $items */
+    public function __construct(public readonly array $items = [])
+    {
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'items' => array_map(static fn (SavedMethod $m) => $m->jsonSerialize(), $this->items),
+        ];
+    }
+}
+
+// src/Payload/Responses/CardTokenizeResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+
+final class CardTokenizeResult implements JsonSerializable
+{
+    /**
+     * Returned token can be:
+     * - provider card token
+     * - setup intent id
+     * - hosted tokenization session id
+     *
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly string $token,
+        public readonly ?NextAction $nextAction = null,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'token' => $this->token,
+            'nextAction' => $this->nextAction?->jsonSerialize(),
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/VirtualAccountRecord.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\VirtualAccount;
+
+final class VirtualAccountRecord implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly VirtualAccount $virtualAccount,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'virtualAccount' => $this->virtualAccount->jsonSerialize(),
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/VirtualAccountList.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\VirtualAccount;
+
+final class VirtualAccountList implements JsonSerializable
+{
+    /**
+     * @param array<int,VirtualAccount> $items
+     */
+    public function __construct(
+        public readonly array $items = [],
+        public readonly ?string $cursor = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'items' => array_map(static fn (VirtualAccount $v) => $v->jsonSerialize(), $this->items),
+            'cursor' => $this->cursor,
+        ];
+    }
+}
+
+// src/Payload/Responses/VirtualAccountLedgerEntry.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\Money;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class VirtualAccountLedgerEntry implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly string $id,
+        public readonly Money $amount,
+        public readonly ?string $type = null, // "credit"|"debit"|provider-specific
+        public readonly ?string $occurredAt = null, // ISO
+        public readonly ?Reference $reference = null,
+        public readonly ?ProviderRef $providerRef = null,
+        public readonly ?string $description = null,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'id' => $this->id,
+            'amount' => $this->amount->toArray(),
+            'type' => $this->type,
+            'occurredAt' => $this->occurredAt,
+            'reference' => $this->reference?->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'description' => $this->description,
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/VirtualAccountLedgerPage.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+
+final class VirtualAccountLedgerPage implements JsonSerializable
+{
+    /**
+     * @param array<int,VirtualAccountLedgerEntry> $items
+     */
+    public function __construct(
+        public readonly array $items = [],
+        public readonly ?string $cursor = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'items' => array_map(static fn (VirtualAccountLedgerEntry $e) => $e->jsonSerialize(), $this->items),
+            'cursor' => $this->cursor,
+        ];
+    }
+}
+
+// src/Payload/Responses/VirtualAccountWithdrawalResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\CanonicalPayoutStatus;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class VirtualAccountWithdrawalResult implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly Reference $reference,
+        public readonly ?ProviderRef $providerRef,
+        public readonly CanonicalPayoutStatus $status,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'reference' => $this->reference->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'status' => $this->status->value,
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/VirtualAccountWithdrawalStatusResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\CanonicalPayoutStatus;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class VirtualAccountWithdrawalStatusResult implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly ?Reference $reference,
+        public readonly ?ProviderRef $providerRef,
+        public readonly CanonicalPayoutStatus $status,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'reference' => $this->reference?->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'status' => $this->status->value,
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/PollSpec.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+
+final class PollSpec implements JsonSerializable
+{
+    public function __construct(
+        public readonly int $intervalSeconds = 60,
+        public readonly int $maxBatchSize = 100,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'intervalSeconds' => $this->intervalSeconds,
+            'maxBatchSize' => $this->maxBatchSize,
+        ];
+    }
+}
+
+// src/Payload/Responses/ReconcileResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+
+final class ReconcileResult implements JsonSerializable
+{
+    /**
+     * Generic reconcile output: host can persist cursor + summary.
+     * @param array<int,array<string,mixed>> $items normalized items (opaque to SDK)
+     */
+    public function __construct(
+        public readonly array $items = [],
+        public readonly ?string $cursor = null,
+        public readonly ?string $message = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'items' => $this->items,
+            'cursor' => $this->cursor,
+            'message' => $this->message,
+        ];
+    }
+}
+
+// src/Payload/Responses/PayoutResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\CanonicalPayoutStatus;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class PayoutResult implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly Reference $reference,
+        public readonly ?ProviderRef $providerRef,
+        public readonly CanonicalPayoutStatus $status,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'reference' => $this->reference->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'status' => $this->status->value,
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/PayoutStatusResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\CanonicalPayoutStatus;
+use UniversalPay\Payload\Common\ProviderRef;
+use UniversalPay\Payload\Common\Reference;
+
+final class PayoutStatusResult implements JsonSerializable
+{
+    /**
+     * @param array<string,mixed>|string|null $rawProviderPayload
+     */
+    public function __construct(
+        public readonly ?Reference $reference,
+        public readonly ?ProviderRef $providerRef,
+        public readonly CanonicalPayoutStatus $status,
+        public readonly array|string|null $rawProviderPayload = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'reference' => $this->reference?->toString(),
+            'providerRef' => $this->providerRef?->toString(),
+            'status' => $this->status->value,
+            'rawProviderPayload' => $this->rawProviderPayload,
+        ];
+    }
+}
+
+// src/Payload/Responses/BeneficiaryList.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+use UniversalPay\Payload\Common\Beneficiary;
+
+final class BeneficiaryList implements JsonSerializable
+{
+    /** @param array<int,Beneficiary> $items */
+    public function __construct(public readonly array $items = [])
+    {
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'items' => array_map(static fn (Beneficiary $b) => $b->jsonSerialize(), $this->items),
+        ];
+    }
+}
+
+// src/Payload/Responses/FrontendConfigResult.php
+<?php declare(strict_types=1);
+
+namespace UniversalPay\Payload\Responses;
+
+use JsonSerializable;
+
+final class FrontendConfigResult implements JsonSerializable
+{
+    /** @param array<string,mixed> $config */
+    public function __construct(
+        public readonly array $config = [],
+        public readonly ?string $expiresAt = null,
+    ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'config' => $this->config,
+            'expiresAt' => $this->expiresAt,
+        ];
+    }
+}
