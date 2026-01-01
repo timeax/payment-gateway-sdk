@@ -3,19 +3,33 @@
   "description": "PayKit Gateway SDK (contracts + typed payloads) for integrating multiple payment providers through strict contracts and DTO payloads.",
   "type": "library",
   "license": "MIT",
-  "keywords": ["payments", "payment-gateway", "sdk", "contracts", "dto"],
+  "keywords": [
+    "payments",
+    "payment-gateway",
+    "sdk",
+    "contracts",
+    "dto"
+  ],
   "require": {
-    "php": "^8.4",
-    "ext-json": "*"
+    "php": "^8.1",
+    "ext-json": "*",
+    "illuminate/support": "^10.0|^11.0|^12.0"
   },
   "autoload": {
     "psr-4": {
-      "PayKit": "src/"
+      "PayKit\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
       "PayKit\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "PayKit\\Laravel\\PayKitServiceProvider"
+      ]
     }
   },
   "require-dev": {

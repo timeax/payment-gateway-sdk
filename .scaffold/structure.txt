@@ -237,3 +237,6 @@ src/
 
   Types/
     Dict.php
+  Laravel/
+    ServiceProvider.php
+    PayKitServiceProvider.php

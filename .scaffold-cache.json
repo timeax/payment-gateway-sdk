@@ -1036,6 +1036,20 @@
       "sizeAtCreate": 0,
       "groupName": "default",
       "groupRoot": "."
+    },
+    "src/Laravel/ServiceProvider.php": {
+      "path": "src/Laravel/ServiceProvider.php",
+      "createdAt": "2026-01-01T23:17:44.771Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
+    },
+    "src/Laravel/PayKitServiceProvider.php": {
+      "path": "src/Laravel/PayKitServiceProvider.php",
+      "createdAt": "2026-01-01T23:22:28.372Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
     }
   }
 }
