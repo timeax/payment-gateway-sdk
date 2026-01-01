@@ -4,7 +4,7 @@ namespace PayKit\Payload\Common;
 
 use JsonSerializable;
 
-final readonly class UiEntryDescriptor implements JsonSerializable
+final  class UiEntryDescriptor implements JsonSerializable
 {
     /**
      * Example:

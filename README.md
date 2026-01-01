@@ -20,6 +20,75 @@ A **business‑agnostic Payment Gateway SDK** that lets a host application integ
 
 ---
 
+## 0) Installation
+
+### Composer
+
+```bash
+composer require timeax/paykit-sdk
+```
+
+### Namespace / Autoloading
+
+This SDK is PSR-4 autoloaded under the `PayKit\` namespace (your package `composer.json` should use):
+
+```json
+"autoload": {
+  "psr-4": {
+    "PayKit\\": "src/"
+  }
+}
+```
+
+---
+
+## 0.1) Laravel integration (manual, copy-paste)
+
+PayKit ships as a plain Composer library (framework-agnostic). In Laravel, you can bind the manager as a singleton in your **host app**.
+
+### Option A — Bind only `GatewayManager` (simplest host DX)
+
+```php
+// app/Providers/AppServiceProvider.php
+
+use PayKit\Manager\GatewayManager;
+
+public function register(): void
+{
+    $this->app->singleton(GatewayManager::class, fn () => new GatewayManager());
+}
+```
+
+### Option B — Bind the full manager stack (explicit singletons)
+
+```php
+// app/Providers/AppServiceProvider.php
+
+use PayKit\Manager\GatewayManager;
+use PayKit\Manager\GatewayRegistry;
+use PayKit\Manager\DriverResolver;
+
+public function register(): void
+{
+    $this->app->singleton(GatewayRegistry::class, fn () => new GatewayRegistry());
+
+    $this->app->singleton(DriverResolver::class, fn ($app) =>
+        new DriverResolver($app->make(GatewayRegistry::class))
+    );
+
+    $this->app->singleton(GatewayManager::class, fn ($app) =>
+        new GatewayManager(
+            $app->make(GatewayRegistry::class),
+            $app->make(DriverResolver::class),
+        )
+    );
+}
+```
+
+> If your constructor signatures differ, adjust the bindings accordingly — the intent is “one registry + one resolver + one manager per app”.
+
+---
+
 ## 1) Core philosophy
 
 ### 1. Model‑First (Host DB is Source of Truth)
