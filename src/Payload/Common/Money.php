@@ -4,11 +4,11 @@ namespace PayKit\Payload\Common;
 
 use JsonSerializable;
 
-final class Money implements JsonSerializable
+final readonly class Money implements JsonSerializable
 {
     public function __construct(
-        public readonly Amount   $amount,
-        public readonly Currency $currency,
+        public Amount   $amount,
+        public Currency $currency,
     )
     {
     }

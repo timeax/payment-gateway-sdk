@@ -5,10 +5,10 @@ namespace PayKit\Payload\Common;
 use InvalidArgumentException;
 use JsonSerializable;
 
-final class Amount implements JsonSerializable
+final readonly class Amount implements JsonSerializable
 {
     /** Decimal string (preferred) or integer-like string. Never store floats. */
-    public function __construct(public readonly string $value)
+    public function __construct(public string $value)
     {
         $v = trim($value);
         if ($v === '' || !preg_match('/^-?\d+(\.\d+)?$/', $v)) {
