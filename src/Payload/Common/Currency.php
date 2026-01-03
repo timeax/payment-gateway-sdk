@@ -5,10 +5,10 @@ namespace PayKit\Payload\Common;
 use InvalidArgumentException;
 use JsonSerializable;
 
-final class Currency implements JsonSerializable
+final readonly class Currency implements JsonSerializable
 {
     /** ISO 4217-like 3-letter code (SDK allows any 3 letters; host can enforce its own whitelist). */
-    public function __construct(public readonly string $code)
+    public function __construct(public string $code)
     {
         $c = strtoupper(trim($code));
         if (!preg_match('/^[A-Z]{3}$/', $c)) {

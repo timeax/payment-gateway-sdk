@@ -3,6 +3,7 @@ src/
   Pay.php
 
   Contracts/
+    PaymentGatewayPayDriverContract.php
     ProvidesGatewayConfigContract.php
     # --- base / discovery ---
     PaymentGatewayDriverContract.php

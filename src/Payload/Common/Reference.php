@@ -5,9 +5,9 @@ namespace PayKit\Payload\Common;
 use InvalidArgumentException;
 use JsonSerializable;
 
-final class Reference implements JsonSerializable
+final readonly class Reference implements JsonSerializable
 {
-    public function __construct(public readonly string $value)
+    public function __construct(public string $value)
     {
         $v = trim($value);
         if ($v === '') {
