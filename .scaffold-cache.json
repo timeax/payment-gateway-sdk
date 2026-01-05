@@ -1043,6 +1043,41 @@
       "sizeAtCreate": 0,
       "groupName": "default",
       "groupRoot": "."
+    },
+    "src/Contracts/PaymentGatewayPayoutMethodsContract.php": {
+      "path": "src/Contracts/PaymentGatewayPayoutMethodsContract.php",
+      "createdAt": "2026-01-05T07:06:42.832Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
+    },
+    "src/Payload/Common/PayoutMethodDescriptor.php": {
+      "path": "src/Payload/Common/PayoutMethodDescriptor.php",
+      "createdAt": "2026-01-05T07:38:09.363Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
+    },
+    "src/Payload/Common/PayoutDestinationSnapshot.php": {
+      "path": "src/Payload/Common/PayoutDestinationSnapshot.php",
+      "createdAt": "2026-01-05T07:38:46.076Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
+    },
+    "src/Contracts/PaymentGatewayPayoutDestinationResolverContract.php": {
+      "path": "src/Contracts/PaymentGatewayPayoutDestinationResolverContract.php",
+      "createdAt": "2026-01-05T07:40:30.223Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
+    },
+    "src/Payload/Requests/PayoutDestinationResolveRequest.php": {
+      "path": "src/Payload/Requests/PayoutDestinationResolveRequest.php",
+      "createdAt": "2026-01-05T07:40:37.778Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
     }
   }
 }

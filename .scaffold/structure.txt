@@ -43,7 +43,8 @@ src/
     # --- payouts (general) ---
     PaymentGatewayPayoutsContract.php
     PaymentGatewayBeneficiariesContract.php
-
+    PaymentGatewayPayoutMethodsContract.php
+    PaymentGatewayPayoutDestinationResolverContract.php
     # --- virtual cards (optional) ---
     PaymentGatewayVirtualCardsContract.php
 
@@ -104,6 +105,8 @@ src/
       PayoutDestination.php
       PayoutMethod.php
       Beneficiary.php
+      PayoutMethodDescriptor.php
+      PayoutDestinationSnapshot.php
 
     Requests/
       # payments
@@ -146,7 +149,7 @@ src/
       PayoutVerifyRequest.php
       BeneficiaryCreateRequest.php
       BeneficiaryUpdateRequest.php
-
+      PayoutDestinationResolveRequest.php
       # frontend config
       FrontendConfigRequest.php
 
