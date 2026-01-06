@@ -3,6 +3,9 @@
 node_modules/
 npm-debug.log
 yarn-error.log
+/prodex
+/.scaffold/
+.scaffold-cache.json
 
 # Laravel 4 specific
 bootstrap/compiled.php
@@ -22,5 +25,3 @@ Homestead.yaml
 Homestead.json
 /.vagrant
 .phpunit.result.cache
-
-/prodex
