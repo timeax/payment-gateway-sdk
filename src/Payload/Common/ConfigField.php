@@ -15,11 +15,14 @@ final readonly class ConfigField implements JsonSerializable
         public string  $label,
         public string  $type = 'text',
         public bool    $required = false,
+        public bool    $secret = false,
         public array   $rules = [],
         public mixed   $default = null,
         public ?string $helpText = null,
         public array   $options = [],
-    ) {}
+    )
+    {
+    }
 
     public function jsonSerialize(): array
     {
@@ -29,10 +32,11 @@ final readonly class ConfigField implements JsonSerializable
             'type' => $this->type,
             'required' => $this->required,
             'rules' => $this->rules,
+            'secret' => $this->secret,
             'default' => $this->default,
             'helpText' => $this->helpText,
             'options' => array_map(
-                static fn (ConfigFieldOption $o) => $o->jsonSerialize(),
+                static fn(ConfigFieldOption $o) => $o->jsonSerialize(),
                 $this->options
             ),
         ];
