@@ -26,7 +26,27 @@ final class ValidationResult implements JsonSerializable
     public function addError(string $field, string $message, ?string $code = null): self
     {
         $this->errors[$field] ??= [];
-        $this->errors[$field][] = new ConfigValidationError($field, $message, $code);
+        return $this->applyError(new ConfigValidationError($field, $message, $code));
+    }
+
+    private function applyError(ConfigValidationError $error): self
+    {
+        $this->errors[$error->field][] = $error;
+        return $this;
+    }
+
+    /** @param array<string, array<int, string|ConfigValidationError>> $errors */
+    public function addErrors(array $errors): self
+    {
+        foreach ($errors as $field => $errs) {
+            foreach ($errs as $err) {
+                if (is_string($err)) {
+                    $this->addError($field, $err);
+                } elseif ($err instanceof ConfigValidationError) {
+                    $this->applyError($err);
+                }
+            }
+        }
         return $this;
     }
 
@@ -46,7 +66,7 @@ final class ValidationResult implements JsonSerializable
         return [
             'ok' => $this->isOk(),
             'errors' => array_map(
-                static fn (array $errs) => array_map(static fn (ConfigValidationError $e) => $e->jsonSerialize(), $errs),
+                static fn(array $errs) => array_map(static fn(ConfigValidationError $e) => $e->jsonSerialize(), $errs),
                 $this->errors
             ),
         ];

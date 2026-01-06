@@ -30,4 +30,9 @@ final readonly class Currency implements JsonSerializable
     {
         return strtoupper($this->code);
     }
+
+    public function __toString()
+    {
+        return $this->toString();
+    }
 }

@@ -30,4 +30,8 @@ final readonly class Country implements JsonSerializable
     {
         return strtoupper($this->code);
     }
+
+    public function __toString(): string {
+        return $this->toString();
+    }
 }
