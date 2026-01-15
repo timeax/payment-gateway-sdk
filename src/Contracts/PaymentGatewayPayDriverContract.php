@@ -5,6 +5,8 @@ namespace PayKit\Contracts;
 interface PaymentGatewayPayDriverContract
     extends PaymentGatewayDriverContract,
     PaymentGatewayPaymentsContract,
+    PaymentGatewayVerificationContract,
+    PaymentGatewayWebhooksContract,
     PaymentGatewayPaymentStatusMapperContract
 {
 }

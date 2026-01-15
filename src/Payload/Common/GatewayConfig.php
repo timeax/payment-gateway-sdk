@@ -31,6 +31,25 @@ final readonly class GatewayConfig implements JsonSerializable
         return $this->secrets[$key] ?? $default;
     }
 
+    /**
+     * Filter options+secrets down to only the keys declared for this config's sandbox mode.
+     * This enables storing BOTH live + sandbox values in one place (host-side),
+     * then selecting the correct subset at runtime.
+     */
+    public function filterBySchema(GatewayConfigSchema $schema): self
+    {
+        $allowed = array_flip($schema->keysForSandbox($this->sandbox));
+
+        $options = array_intersect_key($this->options, $allowed);
+        $secrets = array_intersect_key($this->secrets, $allowed);
+
+        return new self(
+            sandbox: $this->sandbox,
+            options: $options,
+            secrets: $secrets,
+        );
+    }
+
     public function jsonSerialize(): array
     {
         return [

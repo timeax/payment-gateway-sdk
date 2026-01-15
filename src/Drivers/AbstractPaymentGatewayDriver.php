@@ -41,7 +41,7 @@ abstract class AbstractPaymentGatewayDriver implements PaymentGatewayDriverContr
             $data = $cfg->toArray();
         } else {
             /** @var array<string,mixed> $data */
-            $data = (array)$cfg->jsonSerialize();
+            $data = $cfg->jsonSerialize();
         }
 
         unset(

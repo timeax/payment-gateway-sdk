@@ -3,7 +3,9 @@ src/
   Pay.php
 
   Contracts/
+    EvaluatesGatewayVisibilityContract.php
     PaymentGatewayPayDriverContract.php
+    ProvidesGatewayInfoContract.php
     ProvidesGatewayConfigContract.php
     # --- base / discovery ---
     PaymentGatewayDriverContract.php
@@ -109,6 +111,9 @@ src/
       PayoutDestinationSnapshot.php
 
     Requests/
+      # filters
+      GatewayListFilter.php
+      GatewayFeatureFilter.php
       # payments
       PaymentInitiateRequest.php
       PaymentVerifyRequest.php
@@ -153,7 +158,11 @@ src/
       # frontend config
       FrontendConfigRequest.php
 
+      GatewayRegistration.php
+
     Responses/
+      GatewayListItem.php
+      GatewayListResult.php
       # payments + next action
       PaymentInitiateResult.php
       NextAction.php
@@ -212,6 +221,7 @@ src/
 
   Drivers/
     AbstractPaymentGatewayDriver.php
+    AbstractPaymentGatewayRegistration.php
     Concerns/
       HasConfigSchema.php
       MapsStatuses.php

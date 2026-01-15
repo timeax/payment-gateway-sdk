@@ -4,10 +4,10 @@ namespace PayKit\Payload\Common;
 
 use JsonSerializable;
 
-final class Metadata implements JsonSerializable
+final readonly class Metadata implements JsonSerializable
 {
     /** @param array<string,mixed> $data */
-    public function __construct(public readonly array $data = [])
+    public function __construct(public array $data = [])
     {
     }
 

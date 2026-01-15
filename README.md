@@ -489,9 +489,12 @@ If you prefer **one import** (and static access) instead of injecting `GatewayMa
 
 It wraps a singleton `GatewayManager`/`GatewayRegistry` and provides:
 
-* `Pay::register($driverKey, DriverClass::class)`
-* `Pay::driver($driverKey, GatewayConfig $config)` → resolve a config-bound driver
-* `Pay::via($source)` → resolve from a host adapter (DB model, config object, etc.)
+* `Pay::register($driverKey, DriverClass::class, ...)`
+* `Pay::registerGateway(GatewayRegistration $reg)`
+* `Pay::setProvider($providerClass)`
+* `Pay::driver($driverKey, GatewayConfig $config)`
+* `Pay::via($source)`
+* `Pay::list($filter)`
 
 #### Host adapter contract
 
@@ -515,17 +518,64 @@ interface ProvidesGatewayConfigContract
 ```php
 use PayKit\Pay;
 
+// 1. Basic registration
 Pay::register('stripe', \App\Payments\Drivers\StripeDriver::class);
-Pay::register('paystack', \App\Payments\Drivers\PaystackDriver::class);
+
+// 2. Register with a concrete gateway ID (enables Pay::via(12))
+Pay::register(
+    'paystack',
+    \App\Payments\Drivers\PaystackDriver::class,
+    gatewayId: 12,
+    providerClass: \App\Models\PaymentGateway::class
+);
+
+// 3. Set a default provider class for all gateway IDs
+Pay::setProvider(\App\Models\PaymentGateway::class);
+Pay::register('flutterwave', \App\Payments\Drivers\FlutterwaveDriver::class, gatewayId: 'fw_001');
+
+// 4. Register a gateway entry manually (if driver is already registered)
+use PayKit\Payload\Common\GatewayRegistration;
+
+Pay::registerGateway(new GatewayRegistration(
+    gatewayId: 'fw_002',
+    driverKey: 'flutterwave',
+    providerClass: \App\Models\PaymentGateway::class
+));
 ```
 
-**Resolve from a DB model** (recommended DX): your model implements `ProvidesGatewayConfigContract`.
+**Resolve driver** (recommended DX):
 
 ```php
 use PayKit\Pay;
 
-$driver = Pay::via($gatewayModel); // $gatewayModel implements ProvidesGatewayConfigContract
+// A) From a DB model (implements ProvidesGatewayConfigContract)
+// Returns PaymentGatewayPayDriverContract (asserts pay capability)
+$driver = Pay::via($gatewayModel);
+
+// B) From a gateway ID (requires registration with gatewayId)
+$driver = Pay::via(12);
+$driver = Pay::via('fw_001');
+
+// C) From driver key + config
+$driver = Pay::via('stripe', $config);
+
+// Use the driver
 $result = $driver->initiatePayment($payload);
+```
+
+**List available gateways**:
+
+```php
+use PayKit\Pay;
+use PayKit\Payload\Requests\GatewayListFilter;
+use PayKit\Payload\Common\Currency;
+use PayKit\Payload\Common\Country;
+
+// Filter by currency, country, or features
+$list = Pay::list(new GatewayListFilter(
+    currency: new Currency('USD'),
+    country: new Country('US')
+), includeDriversWithoutGateways: false);
 ```
 
 **Manual resolution** (tests / scripts):
@@ -534,6 +584,7 @@ $result = $driver->initiatePayment($payload);
 use PayKit\Pay;
 use PayKit\Payload\Common\GatewayConfig;
 
+// Returns PaymentGatewayDriverContract (no capability assertion)
 $driver = Pay::driver('stripe', new GatewayConfig(
     secrets: ['secret_key' => '...'],
     options: ['environment' => 'test'],

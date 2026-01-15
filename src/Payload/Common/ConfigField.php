@@ -20,6 +20,8 @@ final readonly class ConfigField implements JsonSerializable
         public mixed   $default = null,
         public ?string $helpText = null,
         public array   $options = [],
+        public bool    $sandbox = false,
+        public array   $meta = []
     )
     {
     }
@@ -39,6 +41,8 @@ final readonly class ConfigField implements JsonSerializable
                 static fn(ConfigFieldOption $o) => $o->jsonSerialize(),
                 $this->options
             ),
+            'sandbox' => $this->sandbox,
+            'meta' => $this->meta,
         ];
     }
 }
