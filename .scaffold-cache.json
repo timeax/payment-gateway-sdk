@@ -1079,13 +1079,6 @@
       "groupName": "default",
       "groupRoot": "."
     },
-    "src/Payload/Requests/GatewayRegistration.php": {
-      "path": "src/Payload/Requests/GatewayRegistration.php",
-      "createdAt": "2026-01-15T02:59:52.142Z",
-      "sizeAtCreate": 0,
-      "groupName": "default",
-      "groupRoot": "."
-    },
     "src/Drivers/AbstractPaymentGatewayRegistration.php": {
       "path": "src/Drivers/AbstractPaymentGatewayRegistration.php",
       "createdAt": "2026-01-15T03:41:15.303Z",
@@ -1131,6 +1124,13 @@
     "src/Contracts/EvaluatesGatewayVisibilityContract.php": {
       "path": "src/Contracts/EvaluatesGatewayVisibilityContract.php",
       "createdAt": "2026-01-15T04:41:57.802Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
+    },
+    "src/Contracts/ProvidesGatewayErrorLogContract.php": {
+      "path": "src/Contracts/ProvidesGatewayErrorLogContract.php",
+      "createdAt": "2026-01-16T03:47:09.418Z",
       "sizeAtCreate": 0,
       "groupName": "default",
       "groupRoot": "."

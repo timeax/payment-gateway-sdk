@@ -9,6 +9,7 @@ use PayKit\Contracts\PaymentGatewayDriverContract;
 use PayKit\Contracts\PaymentGatewayManifestProviderContract;
 use PayKit\Contracts\PaymentGatewayPayDriverContract;
 use PayKit\Contracts\ProvidesGatewayConfigContract;
+use PayKit\Contracts\ProvidesGatewayErrorLogContract;
 use PayKit\Contracts\ProvidesGatewayInfoContract;
 use PayKit\Exceptions\GatewayCapabilityException;
 use PayKit\Exceptions\GatewayConfigException;
@@ -28,6 +29,9 @@ final class Pay
 {
     private static ?GatewayRegistry $registry = null;
     private static ?GatewayManager $manager = null;
+
+    /** Optional global error logger (host-level). */
+    private static ?ProvidesGatewayErrorLogContract $errorLogger = null;
 
     public static function setManager(GatewayManager $manager): void
     {
@@ -57,17 +61,15 @@ final class Pay
     }
 
     /**
+     * Optional: set a global logger once (e.g. in a service provider).
+     */
+    public static function setErrorLogger(?ProvidesGatewayErrorLogContract $logger): void
+    {
+        self::$errorLogger = $logger;
+    }
+
+    /**
      * Register a pay-capable driver, optionally also registering a concrete gateway entry.
-     *
-     * Examples:
-     *  Pay::register('korapay', KorapayDriver::class);
-     *
-     *  Pay::register(
-     *      'korapay',
-     *      KorapayDriver::class,
-     *      gatewayId: 12,
-     *      providerClass: \App\Payments\Registrations\KoraGatewayRegistration::class
-     *  );
      *
      * @param string $driverKey
      * @param class-string<PaymentGatewayPayDriverContract> $driverClass
@@ -79,27 +81,13 @@ final class Pay
         string          $driverClass,
         int|string|null $gatewayId = null,
         ?string         $providerClass = null,
-    ): void
-    {
-        // keep Pay strict: only pay-capable drivers should be registered here
+    ): void {
         self::registry()->register($driverKey, $driverClass, $gatewayId, $providerClass);
     }
 
-    /**
-     * Convenience: register only a gateway entry (driver must already be registered).
-     */
     public static function registerGateway(GatewayRegistration $registration): void
     {
         self::registry()->registerGateway($registration);
-    }
-
-    /**
-     * @throws GatewayDriverNotFoundException
-     * @throws GatewayConfigException
-     */
-    public static function driver(string $driverKey, GatewayConfig $config, bool $validate = true): PaymentGatewayDriverContract
-    {
-        return self::manager()->make($driverKey, $config, $validate);
     }
 
     /**
@@ -113,6 +101,15 @@ final class Pay
     }
 
     /**
+     * @throws GatewayDriverNotFoundException
+     * @throws GatewayConfigException
+     */
+    public static function driver(string $driverKey, GatewayConfig $config, bool $validate = true): PaymentGatewayDriverContract
+    {
+        return self::manager()->make($driverKey, $config, $validate);
+    }
+
+    /**
      * Unified resolver for pay-capable drivers.
      *
      * Supported call forms:
@@ -123,15 +120,14 @@ final class Pay
      * @param ProvidesGatewayConfigContract|int|string $source
      * @param bool|GatewayConfig $configOrValidate
      * @param bool $validate Used only when $configOrValidate is a GatewayConfig
-     *
      * @return PaymentGatewayPayDriverContract
+     * @throws Throwable
      */
     public static function via(
         ProvidesGatewayConfigContract|int|string $source,
         bool|GatewayConfig                       $configOrValidate = true,
         bool                                     $validate = true
-    ): PaymentGatewayPayDriverContract
-    {
+    ): PaymentGatewayPayDriverContract {
         // (A) Provider instance (BC path)
         if ($source instanceof ProvidesGatewayConfigContract) {
             if ($configOrValidate instanceof GatewayConfig) {
@@ -140,8 +136,16 @@ final class Pay
                 );
             }
 
-            $driver = self::driver($source->gatewayDriverKey(), $source->gatewayConfig(), (bool)$configOrValidate);
-            return self::assertPayCapable($driver);
+            try {
+                $driver = self::driver($source->gatewayDriverKey(), $source->gatewayConfig(), (bool)$configOrValidate);
+                return self::assertPayCapable($driver);
+            } catch (Throwable $e) {
+                self::reportError('pay.via', $e, [
+                    'driverKey' => $source->gatewayDriverKey(),
+                    'validate' => (bool)$configOrValidate,
+                ], $source);
+                throw $e;
+            }
         }
 
         // (B) driverKey + config shortcut
@@ -152,15 +156,32 @@ final class Pay
                 throw new InvalidArgumentException('Driver key cannot be empty.');
             }
 
-            $driver = self::driver($driverKey, $configOrValidate, $validate);
-            return self::assertPayCapable($driver);
+            try {
+                $driver = self::driver($driverKey, $configOrValidate, $validate);
+                return self::assertPayCapable($driver);
+            } catch (Throwable $e) {
+                self::reportError('pay.via.driverKey', $e, [
+                    'driverKey' => $driverKey,
+                    'validate' => $validate,
+                ]);
+                throw $e;
+            }
         }
 
         // (C) gatewayId => resolve provider from registry => resolve driver
         $provider = self::resolveProviderFromGatewayId($source);
 
-        $driver = self::driver($provider->gatewayDriverKey(), $provider->gatewayConfig(), (bool)$configOrValidate);
-        return self::assertPayCapable($driver);
+        try {
+            $driver = self::driver($provider->gatewayDriverKey(), $provider->gatewayConfig(), (bool)$configOrValidate);
+            return self::assertPayCapable($driver);
+        } catch (Throwable $e) {
+            self::reportError('pay.via.gatewayId', $e, [
+                'gatewayId' => $source,
+                'driverKey' => $provider->gatewayDriverKey(),
+                'validate' => (bool)$configOrValidate,
+            ], $provider);
+            throw $e;
+        }
     }
 
     private static function assertPayCapable(PaymentGatewayDriverContract $driver): PaymentGatewayPayDriverContract
@@ -181,6 +202,10 @@ final class Pay
         $reg = self::registry()->getGateway($gatewayId);
 
         if (!$reg) {
+            self::reportWarn('pay.via.resolveProvider', "Gateway '$gatewayId' is not registered in the GatewayRegistry.", [
+                'gatewayId' => $gatewayId,
+            ]);
+
             throw new InvalidArgumentException(
                 "Gateway '$gatewayId' is not registered in the GatewayRegistry."
             );
@@ -189,9 +214,16 @@ final class Pay
         $providerClass = $reg->providerClass;
 
         try {
-            // Convention: providerClass is instantiable with (int|string $gatewayId)
-            return new $providerClass($gatewayId);
+            /** @var ProvidesGatewayConfigContract $provider */
+            $provider = new $providerClass($gatewayId);
+            return $provider;
         } catch (Throwable $e) {
+            self::reportError('pay.via.resolveProvider', $e, [
+                'gatewayId' => $gatewayId,
+                'driverKey' => $reg->driverKey,
+                'providerClass' => $providerClass,
+            ]);
+
             throw new InvalidArgumentException(
                 "Failed to instantiate provider '$providerClass' for gateway '$gatewayId': {$e->getMessage()}",
                 previous: $e
@@ -218,7 +250,7 @@ final class Pay
 
         foreach ($drivers as $driverKey => $_driverClass) {
             // 1) Resolve a manifest (driver-level)
-            $manifest = self::resolveManifestForList($driverKey, $gatewaysByDriver[$driverKey][0] ?? null);
+            $manifest = self::resolveManifestForList($driverKey, $gatewaysByDriver[$driverKey][0] ?? null, $filter);
 
             // 2) Driver-level filtering (manifest is priority for generic filtering)
             if ($manifest && !self::manifestPassesFilter($manifest, $filter)) {
@@ -227,30 +259,72 @@ final class Pay
 
             $regs = $gatewaysByDriver[$driverKey] ?? [];
 
-            // 3) If there are configured gateways, filter *those* (provider-first inside here)
+            // 3) If there are configured gateways, filter those (provider-first inside here)
             if ($regs) {
                 foreach ($regs as $reg) {
                     /** @var class-string<ProvidesGatewayConfigContract> $providerClass */
                     $providerClass = $reg->providerClass;
 
-                    // your base class expects (int $gatewayId); keep it consistent
-                    /** @var ProvidesGatewayConfigContract $provider */
-                    $provider = new $providerClass($reg->gatewayId);
-
-                    // 3a) provider-first hook
-                    if (($provider instanceof EvaluatesGatewayVisibilityContract) && !$provider->shouldShow($filter)) {
+                    // Instantiate provider (can throw)
+                    try {
+                        /** @var ProvidesGatewayConfigContract $provider */
+                        $provider = new $providerClass($reg->gatewayId);
+                    } catch (Throwable $e) {
+                        self::reportError('pay.list.provider.instantiate', $e, [
+                            'driverKey' => $driverKey,
+                            'gatewayId' => $reg->gatewayId,
+                            'providerClass' => $providerClass,
+                        ]);
                         continue;
                     }
 
-                    // 3b) provider support narrowing (optional, only if provider returns non-empty sets)
-                    if (!self::providerPassesFilter($provider, $filter)) {
+                    // 3a) provider-first hook (can throw)
+                    if ($provider instanceof EvaluatesGatewayVisibilityContract) {
+                        try {
+                            if (!$provider->shouldShow($filter)) {
+                                continue;
+                            }
+                        } catch (Throwable $e) {
+                            self::reportError('pay.list.provider.shouldShow', $e, [
+                                'driverKey' => $driverKey,
+                                'gatewayId' => $reg->gatewayId,
+                                'providerClass' => $providerClass,
+                                'filter' => self::summarizeFilter($filter),
+                            ], $provider);
+                            continue;
+                        }
+                    }
+
+                    // 3b) provider support narrowing (can throw if host does DB work inside)
+                    try {
+                        if (!self::providerPassesFilter($provider, $filter)) {
+                            continue;
+                        }
+                    } catch (Throwable $e) {
+                        self::reportError('pay.list.provider.filter', $e, [
+                            'driverKey' => $driverKey,
+                            'gatewayId' => $reg->gatewayId,
+                            'providerClass' => $providerClass,
+                            'filter' => self::summarizeFilter($filter),
+                        ], $provider);
                         continue;
                     }
 
-                    // 3c) host-defined info
+                    // 3c) host-defined info (optional; don’t fail list if this crashes)
                     $info = [];
                     if ($provider instanceof ProvidesGatewayInfoContract) {
-                        $info = $provider->getInfo($filter);
+                        try {
+                            $info = $provider->getInfo($filter);
+                        } catch (Throwable $e) {
+                            self::reportError('pay.list.provider.info', $e, [
+                                'driverKey' => $driverKey,
+                                'gatewayId' => $reg->gatewayId,
+                                'providerClass' => $providerClass,
+                                'filter' => self::summarizeFilter($filter),
+                            ], $provider);
+
+                            $info = [];
+                        }
                     }
 
                     $items[] = GatewayListItem::gateway(
@@ -263,8 +337,7 @@ final class Pay
                     );
                 }
 
-                // If gateway instances exist but all were filtered out, we do NOT add driver-only
-                // because your host has concrete gateways and provider chose to hide them.
+                // If gateway instances exist but all were filtered out, do not add driver-only
                 continue;
             }
 
@@ -277,68 +350,75 @@ final class Pay
         return new GatewayListResult($items);
     }
 
-    private static function resolveManifestForList(string $driverKey, mixed $anyGatewayReg = null): ?GatewayManifest
-    {
-        // Prefer using an existing gateway config (if we have one), but do not require it.
-        // list() should not be blocked just because there are no gateways saved yet.
+    private static function resolveManifestForList(
+        string $driverKey,
+        mixed $anyGatewayReg = null,
+        ?GatewayListFilter $filter = null
+    ): ?GatewayManifest {
+        try {
+            // Prefer using an existing gateway config (if we have one), but do not require it.
+            if ($anyGatewayReg && isset($anyGatewayReg->providerClass, $anyGatewayReg->gatewayId)) {
+                /** @var class-string<ProvidesGatewayConfigContract> $providerClass */
+                $providerClass = $anyGatewayReg->providerClass;
 
-        if ($anyGatewayReg && isset($anyGatewayReg->providerClass, $anyGatewayReg->gatewayId)) {
-            /** @var class-string<ProvidesGatewayConfigContract> $providerClass */
-            $providerClass = $anyGatewayReg->providerClass;
-            /** @var ProvidesGatewayConfigContract $provider */
-            $provider = new $providerClass($anyGatewayReg->gatewayId);
-            $config = $provider->gatewayConfig();
-        } else {
-            // empty config; drivers that provide manifests should tolerate this
-            $config = new GatewayConfig(options: [], secrets: []);
+                /** @var ProvidesGatewayConfigContract $provider */
+                $provider = new $providerClass($anyGatewayReg->gatewayId);
+
+                $config = $provider->gatewayConfig();
+            } else {
+                $config = new GatewayConfig(options: [], secrets: []);
+            }
+
+            $driver = self::manager()->make($driverKey, $config, false);
+
+            if (!$driver instanceof PaymentGatewayManifestProviderContract) {
+                self::reportWarn('pay.list.manifest', 'Driver does not implement manifest provider contract.', [
+                    'driverKey' => $driverKey,
+                ]);
+                return null;
+            }
+
+            return $driver->getManifest($config);
+        } catch (Throwable $e) {
+            self::reportError('pay.list.manifest', $e, [
+                'driverKey' => $driverKey,
+                'filter' => $filter ? self::summarizeFilter($filter) : null,
+            ]);
+            return null; // don’t kill list() because one manifest failed
         }
-
-        $driver = self::manager()->make($driverKey, $config, false);
-
-        if (!$driver instanceof PaymentGatewayManifestProviderContract) {
-            // If a driver can’t provide a manifest, then list/filter-by-manifest can’t work.
-            // You can also throw here if you want it strict.
-            return null;
-        }
-
-        return $driver->getManifest($config);
     }
 
     private static function manifestPassesFilter(GatewayManifest $manifest, GatewayListFilter $filter): bool
     {
-        // currency
         if ($filter->currency) {
             $supported = $manifest->supportMatrix->supportedCurrencies ?? [];
-            if ($supported !== [] && !self::containsCurrency($supported, $filter->currency->code)) {
+            if ($supported !== [] && !self::containsCode($supported, $filter->currency->code)) {
                 return false;
             }
         }
 
-        // country
         if ($filter->country) {
             $supported = $manifest->supportMatrix->supportedCountries ?? [];
-            if ($supported !== [] && !self::containsCountry($supported, $filter->country->code)) {
+            if ($supported !== [] && !self::containsCode($supported, $filter->country->code)) {
                 return false;
             }
         }
 
-        // features
         return !($filter->features && !$filter->features->matches($manifest->features));
     }
 
     private static function providerPassesFilter(ProvidesGatewayConfigContract $provider, GatewayListFilter $filter): bool
     {
-        // If provider returns empty list, we treat it as “no extra restriction”
         if ($filter->currency) {
             $curr = $provider->getSupportedCurrencies();
-            if ($curr !== [] && !self::containsCurrency($curr, $filter->currency->code)) {
+            if ($curr !== [] && !self::containsCode($curr, $filter->currency->code)) {
                 return false;
             }
         }
 
         if ($filter->country) {
             $cty = $provider->getSupportedCountries();
-            if ($cty !== [] && !self::containsCountry($cty, $filter->country->code)) {
+            if ($cty !== [] && !self::containsCode($cty, $filter->country->code)) {
                 return false;
             }
         }
@@ -347,35 +427,13 @@ final class Pay
     }
 
     /**
-     * @param array $currencies
-     * @param string $code
-     * @return bool
+     * @param array<int,mixed> $items
      */
-    private static function containsCurrency(array $currencies, string $code): bool
-    {
-        return self::extracted($code, $currencies);
-    }
-
-    /**
-     * @param array $countries
-     * @param string $code
-     * @return bool
-     */
-    private static function containsCountry(array $countries, string $code): bool
-    {
-        return self::extracted($code, $countries);
-    }
-
-    /**
-     * @param string $code
-     * @param array $countries
-     * @return bool
-     */
-    private static function extracted(string $code, array $countries): bool
+    private static function containsCode(array $items, string $code): bool
     {
         $code = strtoupper($code);
 
-        foreach ($countries as $c) {
+        foreach ($items as $c) {
             if (is_object($c) && property_exists($c, 'code') && strtoupper((string)$c->code) === $code) {
                 return true;
             }
@@ -388,5 +446,47 @@ final class Pay
         }
 
         return false;
+    }
+
+    private static function summarizeFilter(GatewayListFilter $filter): array
+    {
+        return [
+            'currency' => $filter->currency?->code ?? null,
+            'country' => $filter->country?->code ?? null,
+            'features' => $filter->features ? get_class($filter->features) : null,
+        ];
+    }
+
+    private static function pickLogger(?ProvidesGatewayConfigContract $provider = null): ?ProvidesGatewayErrorLogContract
+    {
+        if ($provider instanceof ProvidesGatewayErrorLogContract) {
+            return $provider;
+        }
+
+        return self::$errorLogger;
+    }
+
+    private static function reportError(string $stage, Throwable $error, array $context = [], ?ProvidesGatewayConfigContract $provider = null): void
+    {
+        $logger = self::pickLogger($provider);
+        if (!$logger) return;
+
+        try {
+            $logger->reportGatewayError($stage, $error, $context);
+        } catch (Throwable) {
+            // never let logging break flow
+        }
+    }
+
+    private static function reportWarn(string $stage, string $message, array $context = [], ?ProvidesGatewayConfigContract $provider = null): void
+    {
+        $logger = self::pickLogger($provider);
+        if (!$logger) return;
+
+        try {
+            $logger->reportGatewayWarning($stage, $message, $context);
+        } catch (Throwable) {
+            // never let logging break flow
+        }
     }
 }
