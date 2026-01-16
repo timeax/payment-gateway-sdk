@@ -76,6 +76,7 @@ src/
       ConfigValidationError.php
       ValidationResult.php
       HealthCheckResult.php
+      GatewayRegistration.php
 
       # manifest + capabilities
       GatewayManifest.php
@@ -158,7 +159,6 @@ src/
       # frontend config
       FrontendConfigRequest.php
 
-      GatewayRegistration.php
 
     Responses/
       GatewayListItem.php
