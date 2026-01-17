@@ -4,10 +4,13 @@ namespace PayKit\Payload\Responses;
 
 final readonly class PopupAction implements NextAction
 {
-    /** @param array<string,mixed> $clientConfig */
-    public function __construct(public array $clientConfig = [])
-    {
-    }
+    /** @param array<string,mixed> $uiProps */
+    public function __construct(
+        public string $uiEntry,            // e.g. "stripe.pay.popup"
+        public array $uiProps = [],
+        public array $clientConfig = [],
+        public ?PopupSpec $popup = null,
+    ) {}
 
     public function type(): string
     {
@@ -18,7 +21,10 @@ final readonly class PopupAction implements NextAction
     {
         return [
             'type' => $this->type(),
+            'uiEntry' => $this->uiEntry,
+            'uiProps' => $this->uiProps,
             'clientConfig' => $this->clientConfig,
+            'popup' => $this->popup?->jsonSerialize(),
         ];
     }
 }

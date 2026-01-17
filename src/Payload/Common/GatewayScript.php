@@ -11,6 +11,7 @@ final readonly class GatewayScript implements JsonSerializable
      */
     public function __construct(
         public ScriptLocation $location,
+        public string         $key,
         public ?string        $src = null,
         public ?string        $inline = null,
         public bool           $async = false,
@@ -19,11 +20,14 @@ final readonly class GatewayScript implements JsonSerializable
         public ?string        $crossorigin = null,
         public ?string        $referrerPolicy = null,
         public array          $attributes = [],
-    ) {}
+    )
+    {
+    }
 
     public function jsonSerialize(): array
     {
         return [
+            'key' => $this->key,
             'location' => $this->location->value,
             'src' => $this->src,
             'inline' => $this->inline,
