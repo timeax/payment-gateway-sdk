@@ -17,6 +17,7 @@ use PayKit\Exceptions\GatewayDriverNotFoundException;
 use PayKit\Manager\DriverResolver;
 use PayKit\Manager\GatewayManager;
 use PayKit\Manager\GatewayRegistry;
+use PayKit\Payload\Common\Currency;
 use PayKit\Payload\Common\GatewayConfig;
 use PayKit\Payload\Common\GatewayManifest;
 use PayKit\Payload\Common\GatewayRegistration;
@@ -81,7 +82,8 @@ final class Pay
         string          $driverClass,
         int|string|null $gatewayId = null,
         ?string         $providerClass = null,
-    ): void {
+    ): void
+    {
         self::registry()->register($driverKey, $driverClass, $gatewayId, $providerClass);
     }
 
@@ -127,7 +129,8 @@ final class Pay
         ProvidesGatewayConfigContract|int|string $source,
         bool|GatewayConfig                       $configOrValidate = true,
         bool                                     $validate = true
-    ): PaymentGatewayPayDriverContract {
+    ): PaymentGatewayPayDriverContract
+    {
         // (A) Provider instance (BC path)
         if ($source instanceof ProvidesGatewayConfigContract) {
             if ($configOrValidate instanceof GatewayConfig) {
@@ -351,10 +354,11 @@ final class Pay
     }
 
     private static function resolveManifestForList(
-        string $driverKey,
-        mixed $anyGatewayReg = null,
+        string             $driverKey,
+        mixed              $anyGatewayReg = null,
         ?GatewayListFilter $filter = null
-    ): ?GatewayManifest {
+    ): ?GatewayManifest
+    {
         try {
             // Prefer using an existing gateway config (if we have one), but do not require it.
             if ($anyGatewayReg && isset($anyGatewayReg->providerClass, $anyGatewayReg->gatewayId)) {
@@ -390,13 +394,17 @@ final class Pay
 
     private static function manifestPassesFilter(GatewayManifest $manifest, GatewayListFilter $filter): bool
     {
-        if ($filter->currency) {
+        // currencies (any-of)
+        if ($filter->currencies !== []) {
             $supported = $manifest->supportMatrix->supportedCurrencies ?? [];
-            if ($supported !== [] && !self::containsCode($supported, $filter->currency->code)) {
+
+            // if driver declares supported currencies, require at least one match
+            if ($supported !== [] && !self::containsAnyCode($supported, $filter->currencies)) {
                 return false;
             }
         }
 
+        // country (single)
         if ($filter->country) {
             $supported = $manifest->supportMatrix->supportedCountries ?? [];
             if ($supported !== [] && !self::containsCode($supported, $filter->country->code)) {
@@ -409,21 +417,39 @@ final class Pay
 
     private static function providerPassesFilter(ProvidesGatewayConfigContract $provider, GatewayListFilter $filter): bool
     {
-        if ($filter->currency) {
+        // currencies (any-of)
+        if ($filter->currencies !== []) {
             $curr = $provider->getSupportedCurrencies();
-            if ($curr !== [] && !self::containsCode($curr, $filter->currency->code)) {
+
+            if ($curr !== [] && !self::containsAnyCode($curr, $filter->currencies)) {
                 return false;
             }
         }
 
+        // country (single)
         if ($filter->country) {
             $cty = $provider->getSupportedCountries();
+
             if ($cty !== [] && !self::containsCode($cty, $filter->country->code)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * @param array<int,mixed> $supported Array of SupportedCurrency|Currency|string-like (whatever you already use)
+     * @param array<int,Currency> $wanted
+     */
+    private static function containsAnyCode(array $supported, array $wanted): bool
+    {
+        foreach ($wanted as $c) {
+            if (self::containsCode($supported, $c->code)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

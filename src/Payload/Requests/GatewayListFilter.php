@@ -8,8 +8,12 @@ use PayKit\Payload\Common\Currency;
 
 final readonly class GatewayListFilter implements JsonSerializable
 {
+    /**
+     * @param array<int,Currency> $currencies
+     * @param array<string,mixed> $context
+     */
     public function __construct(
-        public ?Currency             $currency = null,
+        public array                 $currencies = [], // empty = don’t care
         public ?Country              $country = null,
 
         /**
@@ -23,8 +27,6 @@ final readonly class GatewayListFilter implements JsonSerializable
         /**
          * Extra host-defined inputs (user prefs, account tier, etc).
          * Provider may use this inside shouldShow()/getInfo().
-         *
-         * @var array<string,mixed>
          */
         public array                 $context = [],
     )
@@ -34,10 +36,13 @@ final readonly class GatewayListFilter implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            'currency' => $this->currency,
-            'country' => $this->country,
+            'currencies' => array_map(
+                static fn(Currency $c) => $c->toString(),
+                $this->currencies
+            ),
+            'country' => $this->country?->toString(),
             'sandbox' => $this->sandbox,
-            'features' => $this->features,
+            'features' => $this->features?->jsonSerialize(),
             'context' => (object)$this->context,
         ];
     }
