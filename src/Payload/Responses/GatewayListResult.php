@@ -10,10 +10,10 @@ use Traversable;
 /**
  * @implements IteratorAggregate<int,GatewayListItem>
  */
-final class GatewayListResult implements JsonSerializable, IteratorAggregate
+final readonly class GatewayListResult implements JsonSerializable, IteratorAggregate
 {
     /** @param array<int,GatewayListItem> $items */
-    public function __construct(public readonly array $items)
+    public function __construct(public array $items)
     {
     }
 

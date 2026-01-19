@@ -68,6 +68,7 @@ final readonly class GatewayListItem implements JsonSerializable
             'gatewayId' => $this->gatewayId,
             'manifest' => $this->manifest,
             'info' => (object)$this->info,
+            'currencies' => $this->currencies,
             'providerClass' => $this->providerClass,
         ];
     }
