@@ -337,6 +337,7 @@ final class Pay
                         providerClass: $providerClass,
                         provider: $provider,
                         info: $info,
+                        currencies: self::listCurrencies($manifest, $filter),
                     );
                 }
 
@@ -346,7 +347,7 @@ final class Pay
 
             // 4) No configured gateways: still list driver itself (optional)
             if ($includeDriversWithoutGateways) {
-                $items[] = GatewayListItem::driverOnly($driverKey, $manifest);
+                $items[] = GatewayListItem::driverOnly($driverKey, $manifest, currencies: self::listCurrencies($manifest, $filter));
             }
         }
 
@@ -450,6 +451,76 @@ final class Pay
             }
         }
         return false;
+    }
+
+    /**
+     * Any currency list returned here MUST exist in the manifest.
+     *
+     * @return array<int,string> currency codes
+     */
+    private static function listCurrencies(
+        ?GatewayManifest  $manifest,
+        GatewayListFilter $filter
+    ): array
+    {
+        $supported = $manifest?->supportMatrix->supportedCurrencies ?? [];
+        $supportedCodes = self::uniqueCodes($supported);
+
+        // If manifest doesn't declare currencies, we cannot list any.
+        if ($supportedCodes === []) {
+            return [];
+        }
+
+        // No filter -> show manifest currencies
+        if ($filter->currencies === []) {
+            return $supportedCodes;
+        }
+
+        // Filter -> narrow to intersection (ANY-of)
+        $wantedCodes = array_map(
+            static fn(Currency $c) => $c->code,
+            $filter->currencies
+        );
+
+        return array_values(array_intersect($supportedCodes, $wantedCodes));
+    }
+
+    /**
+     * @param array<int,mixed> $items SupportedCurrency|Currency|string-like
+     * @return array<int,string>
+     */
+    private static function uniqueCodes(array $items): array
+    {
+        $codes = [];
+        foreach ($items as $it) {
+            $code = self::codeOf($it);
+            if ($code !== null && $code !== '') {
+                $codes[$code] = true;
+            }
+        }
+        return array_keys($codes);
+    }
+
+    private static function codeOf(mixed $it): ?string
+    {
+        if ($it instanceof Currency) {
+            return $it->code;
+        }
+
+        if (is_string($it)) {
+            return $it;
+        }
+
+        if (is_object($it)) {
+            if (property_exists($it, 'code')) {
+                return (string)$it->code;
+            }
+            if (property_exists($it, 'currency') && $it->currency instanceof Currency) {
+                return $it->currency->code;
+            }
+        }
+
+        return null;
     }
 
     /**

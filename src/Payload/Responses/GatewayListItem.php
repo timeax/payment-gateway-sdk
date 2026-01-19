@@ -16,6 +16,8 @@ final readonly class GatewayListItem implements JsonSerializable
     public function __construct(
         public string                         $driverKey,
         public int|string|null                $gatewayId = null,
+        /** @param array<int,string> $currencies */
+        public array                          $currencies = [],
         public ?GatewayManifest               $manifest = null,
 
         /** @var array<string,mixed> */
@@ -29,9 +31,9 @@ final readonly class GatewayListItem implements JsonSerializable
     {
     }
 
-    public static function driverOnly(string $driverKey, ?GatewayManifest $manifest): self
+    public static function driverOnly(string $driverKey, ?GatewayManifest $manifest, array $currencies = []): self
     {
-        return new self(driverKey: $driverKey, manifest: $manifest);
+        return new self(driverKey: $driverKey, currencies: $currencies, manifest: $manifest);
     }
 
     /**
@@ -45,11 +47,13 @@ final readonly class GatewayListItem implements JsonSerializable
         string                        $providerClass,
         ProvidesGatewayConfigContract $provider,
         array                         $info = [],
+        array                         $currencies = [],
     ): self
     {
         return new self(
             driverKey: $driverKey,
             gatewayId: $gatewayId,
+            currencies: $currencies,
             manifest: $manifest,
             info: $info,
             providerClass: $providerClass,
