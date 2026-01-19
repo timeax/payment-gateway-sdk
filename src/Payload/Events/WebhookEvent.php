@@ -18,15 +18,15 @@ final readonly class WebhookEvent implements JsonSerializable
      * Generic normalized webhook event.
      *
      * Examples:
-     * - subject: "payment", type: "updated", paymentStatus: succeeded
-     * - subject: "refund",  type: "updated", refundStatus: processing
-     * - subject: "payout",  type: "updated", payoutStatus: failed
+     * - subject: payment, type: updated, paymentStatus: succeeded
+     * - subject: refund,  type: updated, refundStatus: processing
+     * - subject: payout,  type: updated, payoutStatus: failed
      *
      * @param array<string,mixed>|string|null $rawProviderPayload
      */
     public function __construct(
-        public string                  $subject, // "payment"|"refund"|"payout"|"virtual_account"|...
-        public string                  $type,    // "created"|"updated"|"succeeded"|...
+        public WebhookEventSubject     $subject,
+        public WebhookEventType        $type,
 
         public ?Reference              $reference = null,
         public ?ProviderRef            $providerRef = null,
@@ -37,15 +37,16 @@ final readonly class WebhookEvent implements JsonSerializable
 
         ?Metadata                      $meta = null,
         public array|string|null       $rawProviderPayload = null,
-    ) {
+    )
+    {
         $this->meta = $meta ?? new Metadata([]);
     }
 
     public function jsonSerialize(): array
     {
         return [
-            'subject' => $this->subject,
-            'type' => $this->type,
+            'subject' => $this->subject->value,
+            'type' => $this->type->value,
             'reference' => $this->reference?->toString(),
             'providerRef' => $this->providerRef?->toString(),
             'paymentStatus' => $this->paymentStatus?->value,

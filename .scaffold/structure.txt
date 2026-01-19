@@ -211,6 +211,8 @@ src/
       # generic webhook normalization
       WebhookEvent.php
       WebhookHandleResult.php
+      WebhookEventSubject.php
+      WebhookEventType.php
 
       # virtual account events (deposits/withdrawals/transfers)
       VirtualAccountEvent.php

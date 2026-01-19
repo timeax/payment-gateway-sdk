@@ -3,29 +3,32 @@
 namespace PayKit\Payload\Events;
 
 use JsonSerializable;
+use PayKit\Payload\Responses\WebhookVerifyResult;
 
 final readonly class WebhookHandleResult implements JsonSerializable
 {
-    /**
-     * Represents what the host plans to return to the provider after handling.
-     * @param array<string,string> $headers
-     */
     public function __construct(
-        public bool   $ack = true,
-        public int    $statusCode = 200,
-        public string $body = 'ok',
-        public array  $headers = [],
+        public WebhookVerifyResult $verified,
+        public ?WebhookEvent       $event = null,
     )
     {
+    }
+
+    public static function rejected(WebhookVerifyResult $verified): self
+    {
+        return new self($verified, null);
+    }
+
+    public static function accepted(WebhookVerifyResult $verified, WebhookEvent $event): self
+    {
+        return new self($verified, $event);
     }
 
     public function jsonSerialize(): array
     {
         return [
-            'ack' => $this->ack,
-            'statusCode' => $this->statusCode,
-            'body' => $this->body,
-            'headers' => $this->headers,
+            'verified' => $this->verified->jsonSerialize(),
+            'event' => $this->event?->jsonSerialize(),
         ];
     }
 }

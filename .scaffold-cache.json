@@ -1134,6 +1134,20 @@
       "sizeAtCreate": 0,
       "groupName": "default",
       "groupRoot": "."
+    },
+    "src/Payload/Events/WebhookEventSubject.php": {
+      "path": "src/Payload/Events/WebhookEventSubject.php",
+      "createdAt": "2026-01-19T05:06:20.506Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
+    },
+    "src/Payload/Events/WebhookEventType.php": {
+      "path": "src/Payload/Events/WebhookEventType.php",
+      "createdAt": "2026-01-19T05:06:20.509Z",
+      "sizeAtCreate": 0,
+      "groupName": "default",
+      "groupRoot": "."
     }
   }
 }

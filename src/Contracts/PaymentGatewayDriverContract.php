@@ -7,7 +7,7 @@ use PayKit\Payload\Common\GatewayConfigSchema;
 use PayKit\Payload\Common\HealthCheckResult;
 use PayKit\Payload\Common\ValidationResult;
 
-interface PaymentGatewayDriverContract
+interface PaymentGatewayDriverContract extends PaymentGatewayWebhooksContract
 {
     public function driverKey(): string;
 

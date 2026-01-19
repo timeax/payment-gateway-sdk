@@ -7,6 +7,8 @@ use PayKit\Contracts\PaymentGatewayDriverContract;
 use PayKit\Exceptions\GatewayCapabilityException;
 use PayKit\Payload\Common\GatewayConfig;
 use PayKit\Payload\Common\HealthCheckResult;
+use PayKit\Payload\Events\WebhookHandleResult;
+use PayKit\Payload\Requests\WebhookRequest;
 
 abstract class AbstractPaymentGatewayDriver implements PaymentGatewayDriverContract
 {
@@ -58,6 +60,19 @@ abstract class AbstractPaymentGatewayDriver implements PaymentGatewayDriverContr
         );
 
         return $data;
+    }
+
+    final public function handleWebhook(WebhookRequest $request, ?GatewayConfig $config = null): WebhookHandleResult
+    {
+        $verified = $this->verifyWebhook($request, $config);
+
+        if (!$verified->ok) {
+            return WebhookHandleResult::rejected($verified);
+        }
+
+        $event = $this->parseWebhook($request, $verified, $config);
+
+        return WebhookHandleResult::accepted($verified, $event);
     }
 
     protected function requireCapability(string $contractOrName, ?string $method = null): never
