@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Payload\Events;
 
@@ -47,3 +47,4 @@ final readonly class PayoutEvent implements JsonSerializable
         ];
     }
 }
+

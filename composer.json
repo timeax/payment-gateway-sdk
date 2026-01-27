@@ -12,7 +12,8 @@
   ],
   "require": {
     "php": "^8.1",
-    "ext-json": "*"
+    "ext-json": "*",
+    "timeax/ui-config-schema": "^0.0.2"
   },
   "autoload": {
     "psr-4": {

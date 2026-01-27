@@ -1,15 +1,17 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Contracts;
 
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Events\VirtualAccountEvent;
 use PayKit\Payload\Requests\WebhookRequest;
 use PayKit\Payload\Responses\WebhookVerifyResult;
 
 interface PaymentGatewayVirtualAccountWebhookWatcherContract
 {
-    public function verifyWebhook(WebhookRequest $request, ?GatewayConfig $config = null): WebhookVerifyResult;
+    public function verifyWebhook(WebhookRequest $request, ?ConfigBag $config = null): WebhookVerifyResult;
 
-    public function parseVirtualAccountEvent(WebhookRequest $request, ?GatewayConfig $config = null): VirtualAccountEvent;
+    public function parseVirtualAccountEvent(WebhookRequest $request, ?ConfigBag $config = null): VirtualAccountEvent;
 }
+
+

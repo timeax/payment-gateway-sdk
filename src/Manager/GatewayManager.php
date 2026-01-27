@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Manager;
 
@@ -6,7 +6,7 @@ use PayKit\Contracts\PaymentGatewayDriverContract;
 use PayKit\Contracts\PaymentGatewayManifestProviderContract;
 use PayKit\Exceptions\GatewayCapabilityException;
 use PayKit\Exceptions\GatewayConfigException;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\GatewayManifest;
 
 final readonly class GatewayManager
@@ -15,7 +15,7 @@ final readonly class GatewayManager
     {
     }
 
-    public function make(string $driverKey, GatewayConfig $config, bool $validate = true): PaymentGatewayDriverContract
+    public function make(string $driverKey, ConfigBag $config, bool $validate = true): PaymentGatewayDriverContract
     {
         $driver = $this->resolver->resolve($driverKey, $config);
 
@@ -33,7 +33,7 @@ final readonly class GatewayManager
         return $driver;
     }
 
-    public function manifest(string $driverKey, GatewayConfig $config, bool $validate = true): GatewayManifest
+    public function manifest(string $driverKey, ConfigBag $config, bool $validate = true): GatewayManifest
     {
         $driver = $this->make($driverKey, $config, $validate);
 
@@ -98,3 +98,5 @@ final readonly class GatewayManager
         return [];
     }
 }
+
+

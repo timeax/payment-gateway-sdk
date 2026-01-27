@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Payload\Common;
 
@@ -35,3 +35,4 @@ final class ProviderRef implements JsonSerializable
         return $this->toString();
     }
 }
+

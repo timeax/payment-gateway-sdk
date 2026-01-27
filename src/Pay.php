@@ -1,4 +1,4 @@
-<?php /** @noinspection GrazieInspection */
+﻿<?php /** @noinspection GrazieInspection */
 declare(strict_types=1);
 
 namespace PayKit;
@@ -18,7 +18,7 @@ use PayKit\Manager\DriverResolver;
 use PayKit\Manager\GatewayManager;
 use PayKit\Manager\GatewayRegistry;
 use PayKit\Payload\Common\Currency;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\GatewayManifest;
 use PayKit\Payload\Common\GatewayRegistration;
 use PayKit\Payload\Requests\GatewayListFilter;
@@ -106,7 +106,7 @@ final class Pay
      * @throws GatewayDriverNotFoundException
      * @throws GatewayConfigException
      */
-    public static function driver(string $driverKey, GatewayConfig $config, bool $validate = true): PaymentGatewayDriverContract
+    public static function driver(string $driverKey, ConfigBag $config, bool $validate = true): PaymentGatewayDriverContract
     {
         return self::manager()->make($driverKey, $config, $validate);
     }
@@ -120,20 +120,20 @@ final class Pay
      * 3) Driver key + config: Pay::via('korapay', $config, true)
      *
      * @param ProvidesGatewayConfigContract|int|string $source
-     * @param bool|GatewayConfig $configOrValidate
-     * @param bool $validate Used only when $configOrValidate is a GatewayConfig
+     * @param bool|ConfigBag $configOrValidate
+     * @param bool $validate Used only when $configOrValidate is a ConfigBag
      * @return PaymentGatewayPayDriverContract
      * @throws Throwable
      */
     public static function via(
         ProvidesGatewayConfigContract|int|string $source,
-        bool|GatewayConfig                       $configOrValidate = true,
+        bool|ConfigBag                       $configOrValidate = true,
         bool                                     $validate = true
     ): PaymentGatewayPayDriverContract
     {
         // (A) Provider instance (BC path)
         if ($source instanceof ProvidesGatewayConfigContract) {
-            if ($configOrValidate instanceof GatewayConfig) {
+            if ($configOrValidate instanceof ConfigBag) {
                 throw new InvalidArgumentException(
                     'When passing a ProvidesGatewayConfigContract, the second argument must be a boolean validate flag.'
                 );
@@ -152,7 +152,7 @@ final class Pay
         }
 
         // (B) driverKey + config shortcut
-        if ($configOrValidate instanceof GatewayConfig) {
+        if ($configOrValidate instanceof ConfigBag) {
             $driverKey = trim((string)$source);
 
             if ($driverKey === '') {
@@ -313,7 +313,7 @@ final class Pay
                         continue;
                     }
 
-                    // 3c) host-defined info (optional; don’t fail list if this crashes)
+                    // 3c) host-defined info (optional; donâ€™t fail list if this crashes)
                     $info = [];
                     if ($provider instanceof ProvidesGatewayInfoContract) {
                         try {
@@ -371,7 +371,7 @@ final class Pay
 
                 $config = $provider->gatewayConfig();
             } else {
-                $config = new GatewayConfig(options: [], secrets: []);
+                $config = new ConfigBag(options: [], secrets: []);
             }
 
             $driver = self::manager()->make($driverKey, $config, false);
@@ -389,7 +389,7 @@ final class Pay
                 'driverKey' => $driverKey,
                 'filter' => $filter ? self::summarizeFilter($filter) : null,
             ]);
-            return null; // don’t kill list() because one manifest failed
+            return null; // donâ€™t kill list() because one manifest failed
         }
     }
 
@@ -587,3 +587,5 @@ final class Pay
         }
     }
 }
+
+

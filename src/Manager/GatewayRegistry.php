@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Manager;
 
@@ -157,3 +157,4 @@ final class GatewayRegistry
         return is_int($id) ? 'i:' . $id : 's:' . $id;
     }
 }
+

@@ -1,11 +1,13 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Contracts;
 
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\GatewayManifest;
 
 interface PaymentGatewayManifestProviderContract
 {
-    public function getManifest(?GatewayConfig $config = null): GatewayManifest;
+    public function getManifest(?ConfigBag $config = null): GatewayManifest;
 }
+
+

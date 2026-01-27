@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Payload\Requests;
 
@@ -13,12 +13,12 @@ final readonly class GatewayListFilter implements JsonSerializable
      * @param array<string,mixed> $context
      */
     public function __construct(
-        public array                 $currencies = [], // empty = don’t care
+        public array                 $currencies = [], // empty = donâ€™t care
         public ?Country              $country = null,
 
         /**
          * If your host wants to filter sandbox-only or live-only.
-         * null = don’t care.
+         * null = donâ€™t care.
          */
         public ?bool                 $sandbox = null,
 
@@ -47,3 +47,4 @@ final readonly class GatewayListFilter implements JsonSerializable
         ];
     }
 }
+

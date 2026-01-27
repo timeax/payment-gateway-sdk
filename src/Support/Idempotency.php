@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Support;
 
@@ -9,7 +9,7 @@ final class Idempotency
     public const HEADER = 'Idempotency-Key';
 
     /**
-     * Builds a stable idempotency key that’s safe to send to providers.
+     * Builds a stable idempotency key thatâ€™s safe to send to providers.
      * Keep it short-ish and deterministic.
      */
     public static function key(string $driverKey, string $operation, Reference|string $reference, ?string $salt = null, int $maxLen = 64): string
@@ -24,3 +24,4 @@ final class Idempotency
         return substr($key, 0, $maxLen);
     }
 }
+

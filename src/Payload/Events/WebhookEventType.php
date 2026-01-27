@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Payload\Events;
 
@@ -25,7 +25,7 @@ enum WebhookEventType: string
     case processing = 'processing';
     case pending = 'pending';
 
-    // “needs host/user action” (3DS, extra steps, etc.)
+    // â€œneeds host/user actionâ€ (3DS, extra steps, etc.)
     case requires_action = 'requires_action';
 
     // verification/validation events (bank account verified, destination verified, etc.)
@@ -45,3 +45,4 @@ enum WebhookEventType: string
     // fallback
     case other = 'other';
 }
+

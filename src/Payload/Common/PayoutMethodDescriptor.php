@@ -1,8 +1,9 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Payload\Common;
 
 use JsonSerializable;
+use Timeax\ConfigSchema\Schema\ConfigSchema;
 
 final readonly class PayoutMethodDescriptor implements JsonSerializable
 {
@@ -14,7 +15,7 @@ final readonly class PayoutMethodDescriptor implements JsonSerializable
         public string               $key,        // e.g. "bank.ng.local", "crypto.usdt.trc20"
         public PayoutMethod         $method,     // enum category (bank/wallet/crypto/...)
         public string               $label,      // e.g. "Bank Transfer (NG)"
-        public ?GatewayConfigSchema $inputSchema = null, // host-rendered fields (optional)
+        public ?ConfigSchema $inputSchema = null, // host-rendered fields (optional)
         public ?UiModuleDescriptor  $ui = null,          // host-mounted UI module (optional)
         public array                $scripts = [],          // scripts needed for UI (optional)
         public ?Currency            $currency = null,
@@ -39,3 +40,4 @@ final readonly class PayoutMethodDescriptor implements JsonSerializable
         ];
     }
 }
+

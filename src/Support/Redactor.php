@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Support;
 
@@ -104,3 +104,4 @@ final class Redactor
         return str_repeat('*', max(0, $len - 4)) . substr($s, -4);
     }
 }
+

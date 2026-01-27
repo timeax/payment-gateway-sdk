@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Types;
 
@@ -133,3 +133,4 @@ final class Dict implements ArrayAccess, IteratorAggregate, Countable, JsonSeria
         return $this->items;
     }
 }
+

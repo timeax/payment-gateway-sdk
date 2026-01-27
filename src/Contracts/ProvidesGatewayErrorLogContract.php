@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Contracts;
 
@@ -34,3 +34,4 @@ interface ProvidesGatewayErrorLogContract
      */
     public function reportGatewayWarning(string $stage, string $message, array $context = []): void;
 }
+

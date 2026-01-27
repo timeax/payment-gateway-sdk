@@ -1,8 +1,8 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Contracts;
 
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\PayoutMethodDescriptor;
 
 interface PaymentGatewayPayoutMethodsContract
@@ -18,12 +18,14 @@ interface PaymentGatewayPayoutMethodsContract
      * @param array<string,mixed> $context
      * @return array<int,PayoutMethodDescriptor>
      */
-    public function listPayoutMethods(array $context = [], ?GatewayConfig $config = null): array;
+    public function listPayoutMethods(array $context = [], ?ConfigBag $config = null): array;
 
     /**
      * Fetch a single payout method by key.
      *
      * @param array<string,mixed> $context
      */
-    public function getPayoutMethod(string $methodKey, array $context = [], ?GatewayConfig $config = null): ?PayoutMethodDescriptor;
+    public function getPayoutMethod(string $methodKey, array $context = [], ?ConfigBag $config = null): ?PayoutMethodDescriptor;
 }
+
+

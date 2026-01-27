@@ -1,10 +1,12 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Contracts;
 
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 
 interface PaymentGatewayVirtualCardsContract
 {
-    public function isSupported(?GatewayConfig $config = null): bool;
+    public function isSupported(?ConfigBag $config = null): bool;
 }
+
+

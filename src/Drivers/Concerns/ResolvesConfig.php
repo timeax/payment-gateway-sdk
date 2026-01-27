@@ -1,20 +1,20 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Drivers\Concerns;
 
 use PayKit\Exceptions\GatewayRuntimeException;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 
 trait ResolvesConfig
 {
-    protected ?GatewayConfig $defaultConfig = null;
+    protected ?ConfigBag $defaultConfig = null;
 
-    protected function setDefaultConfig(?GatewayConfig $config): void
+    protected function setDefaultConfig(?ConfigBag $config): void
     {
         $this->defaultConfig = $config;
     }
 
-    protected function resolveConfig(?GatewayConfig $override = null): GatewayConfig
+    protected function resolveConfig(?ConfigBag $override = null): ConfigBag
     {
         $config = $override ?? $this->defaultConfig;
 
@@ -33,3 +33,5 @@ trait ResolvesConfig
         return $config;
     }
 }
+
+

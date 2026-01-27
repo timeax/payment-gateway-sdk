@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Payload\Requests;
 
@@ -13,7 +13,7 @@ final readonly class CardTokenizeRequest implements JsonSerializable
     public Metadata $meta;
 
     /**
-     * Tokenization may be “initiate a tokenization flow” or “exchange client token”.
+     * Tokenization may be â€œinitiate a tokenization flowâ€ or â€œexchange client tokenâ€.
      * @param array<string,mixed> $context
      */
     public function __construct(
@@ -42,3 +42,4 @@ final readonly class CardTokenizeRequest implements JsonSerializable
         ];
     }
 }
+

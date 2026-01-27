@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Support;
 
@@ -43,3 +43,4 @@ final class DedupeScripts
         return $out;
     }
 }
+

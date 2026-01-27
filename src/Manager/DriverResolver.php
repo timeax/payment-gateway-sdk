@@ -1,10 +1,10 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Manager;
 
 use PayKit\Contracts\PaymentGatewayDriverContract;
 use PayKit\Exceptions\GatewayDriverNotFoundException;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 
 final readonly class DriverResolver
 {
@@ -12,7 +12,7 @@ final readonly class DriverResolver
     {
     }
 
-    public function resolve(string $driverKey, GatewayConfig $config): PaymentGatewayDriverContract
+    public function resolve(string $driverKey, ConfigBag $config): PaymentGatewayDriverContract
     {
         $class = $this->registry->get($driverKey);
 
@@ -26,3 +26,5 @@ final readonly class DriverResolver
         return $driver;
     }
 }
+
+

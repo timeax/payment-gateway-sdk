@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Exceptions;
 
@@ -27,3 +27,4 @@ final class GatewayCapabilityException extends GatewayRuntimeException
         return new self($driverKey, $capability, $method, $msg);
     }
 }
+

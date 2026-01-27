@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Payload\Common;
 
@@ -10,3 +10,4 @@ enum PayoutMethod: string
     case crypto = 'crypto';
     case other = 'other';
 }
+

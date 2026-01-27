@@ -1,11 +1,11 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Drivers\Concerns;
 
-use PayKit\Payload\Common\ConfigField;
-use PayKit\Payload\Common\GatewayConfig;
-use PayKit\Payload\Common\GatewayConfigSchema;
-use PayKit\Payload\Common\ValidationResult;
+use Timeax\ConfigSchema\Schema\ConfigField;
+use Timeax\ConfigSchema\Schema\ConfigSchema;
+use Timeax\ConfigSchema\Support\ConfigBag;
+use Timeax\ConfigSchema\Support\ConfigValidationResult;
 
 trait HasConfigSchema
 {
@@ -15,12 +15,12 @@ trait HasConfigSchema
         return [];
     }
 
-    public function configSchema(): GatewayConfigSchema
+    public function configSchema(): ConfigSchema
     {
-        return new GatewayConfigSchema($this->configFields());
+        return new ConfigSchema($this->configFields());
     }
 
-    public function validateConfig(?GatewayConfig $config = null): ValidationResult
+    public function validateConfig(?ConfigBag $config = null): ConfigValidationResult
     {
         // hybrid: allow per-call override, otherwise fall back to constructor default
         $cfg = method_exists($this, 'resolveConfig')
@@ -29,13 +29,14 @@ trait HasConfigSchema
 
         if (!$cfg) {
             // If resolveConfig() exists it would have thrown already; this is a last-resort fallback.
-            return new ValidationResult(false, ['config' => 'Gateway configuration missing.']);
+            return ConfigValidationResult::fail()
+                ->addError('config', 'Gateway configuration missing.');
         }
 
         $schema = $this->configSchema();
 
         if (method_exists($schema, 'validate')) {
-            /** @var ValidationResult $res */
+            /** @var ConfigValidationResult $res */
             $res = $schema->validate($cfg);
             return $res;
         }
@@ -53,24 +54,24 @@ trait HasConfigSchema
                 continue;
             }
 
-            $val = null;
-            if (method_exists($cfg, 'get')) {
-                $val = $cfg->get($name);
-            } elseif (method_exists($cfg, 'toArray')) {
-                /** @var array<string,mixed> $arr */
-                $arr = $cfg->toArray();
-                $val = $arr[$name] ?? null;
+            $val = $field->secret
+                ? $cfg->secret($name)
+                : $cfg->option($name);
+
+            if ($val === null && !$field->secret) {
+                $val = $cfg->secret($name);
             }
 
             if ($val === null || (is_string($val) && trim($val) === '')) {
-                $errors[$name] = 'Required';
+                $errors[$name][] = 'Required';
             }
         }
 
-        if (method_exists(ValidationResult::class, 'ok') && method_exists(ValidationResult::class, 'fail')) {
-            return $errors ? ValidationResult::fail($errors) : ValidationResult::ok();
-        }
 
-        return new ValidationResult($errors === [], $errors);
+        return $errors
+            ? ConfigValidationResult::fail()->addErrors($errors)
+            : ConfigValidationResult::ok();
     }
 }
+
+

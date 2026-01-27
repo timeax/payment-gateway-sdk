@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Exceptions;
 
@@ -23,3 +23,4 @@ class GatewayRuntimeException extends RuntimeException
         return new static($message, $context, $code, $previous);
     }
 }
+

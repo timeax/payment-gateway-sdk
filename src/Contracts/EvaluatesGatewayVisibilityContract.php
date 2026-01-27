@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Contracts;
 
@@ -14,3 +14,4 @@ interface EvaluatesGatewayVisibilityContract
 {
     public function shouldShow(GatewayListFilter $filter): bool;
 }
+

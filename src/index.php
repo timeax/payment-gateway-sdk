@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit;
 
@@ -22,3 +22,4 @@ final class Sdk
         return new GatewayManager(new DriverResolver($registry));
     }
 }
+

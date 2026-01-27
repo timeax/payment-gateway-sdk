@@ -1,11 +1,11 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Drivers;
 
 use JsonSerializable;
 use PayKit\Contracts\PaymentGatewayDriverContract;
 use PayKit\Exceptions\GatewayCapabilityException;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\HealthCheckResult;
 use PayKit\Payload\Events\WebhookHandleResult;
 use PayKit\Payload\Requests\WebhookRequest;
@@ -18,7 +18,7 @@ abstract class AbstractPaymentGatewayDriver implements PaymentGatewayDriverContr
     use Concerns\MapsStatuses;
     use Concerns\BuildsManifest;
 
-    public function __construct(?GatewayConfig $config = null)
+    public function __construct(?ConfigBag $config = null)
     {
         $this->setDefaultConfig($config);
     }
@@ -26,9 +26,9 @@ abstract class AbstractPaymentGatewayDriver implements PaymentGatewayDriverContr
     /**
      * Drivers MUST implement health checks (hybrid: optional override config).
      */
-    abstract public function healthCheck(?GatewayConfig $config = null): ?HealthCheckResult;
+    abstract public function healthCheck(?ConfigBag $config = null): ?HealthCheckResult;
 
-    public function publicConfig(?GatewayConfig $config = null): array
+    public function publicConfig(?ConfigBag $config = null): array
     {
         $cfg = $this->resolveConfig($config);
 
@@ -62,7 +62,7 @@ abstract class AbstractPaymentGatewayDriver implements PaymentGatewayDriverContr
         return $data;
     }
 
-    final public function handleWebhook(WebhookRequest $request, ?GatewayConfig $config = null): WebhookHandleResult
+    final public function handleWebhook(WebhookRequest $request, ?ConfigBag $config = null): WebhookHandleResult
     {
         $verified = $this->verifyWebhook($request, $config);
 
@@ -80,3 +80,5 @@ abstract class AbstractPaymentGatewayDriver implements PaymentGatewayDriverContr
         throw GatewayCapabilityException::notSupported($this->driverKey(), $contractOrName, $method);
     }
 }
+
+

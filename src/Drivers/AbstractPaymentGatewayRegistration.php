@@ -1,11 +1,11 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PayKit\Drivers;
 
 use PayKit\Contracts\EvaluatesGatewayVisibilityContract;
 use PayKit\Contracts\ProvidesGatewayConfigContract;
 use PayKit\Payload\Requests\GatewayListFilter;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 
 abstract readonly class AbstractPaymentGatewayRegistration implements
     ProvidesGatewayConfigContract,
@@ -22,7 +22,7 @@ abstract readonly class AbstractPaymentGatewayRegistration implements
 
     abstract public function gatewayDriverKey(): string;
 
-    abstract public function gatewayConfig(): GatewayConfig;
+    abstract public function gatewayConfig(): ConfigBag;
 
     abstract public function getSupportedCurrencies(): array;
 
@@ -33,3 +33,5 @@ abstract readonly class AbstractPaymentGatewayRegistration implements
         return true;
     }
 }
+
+
