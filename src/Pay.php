@@ -1,5 +1,6 @@
-﻿<?php /** @noinspection GrazieInspection */
-declare(strict_types=1);
+﻿<?php declare(strict_types=1);
+/** @noinspection GrazieInspection */
+
 
 namespace PayKit;
 
@@ -127,7 +128,7 @@ final class Pay
      */
     public static function via(
         ProvidesGatewayConfigContract|int|string $source,
-        bool|ConfigBag                       $configOrValidate = true,
+        bool|ConfigBag                           $configOrValidate = true,
         bool                                     $validate = true
     ): PaymentGatewayPayDriverContract
     {
