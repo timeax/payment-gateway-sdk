@@ -1,5 +1,6 @@
-﻿<?php declare(strict_types=1);
-/** @noinspection GrazieInspection */
+<?php /** @noinspection GrazieInspection */
+/** @noinspection PhpUnused */
+declare(strict_types=1);
 
 
 namespace PayKit;
