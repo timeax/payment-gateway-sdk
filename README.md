@@ -139,13 +139,16 @@ New features are optional contracts, not scattered flags.
 PayKit uses a **hybrid config injection** pattern:
 
 * Drivers may receive a **default config** in the constructor (standard “manager” flow).
-* Contract methods accept an **optional override config**: `?GatewayConfig $config = null`.
+* Contract methods accept an **optional override config**: `?ConfigBag $config = null`.
 * Resolution rule: **method override > constructor default > error**.
 
 This keeps host code clean in normal flows, while allowing stateless/batch use when needed (e.g., iterating through
 multiple merchant accounts).
 
 **Rule:** Wherever a method takes both a config and other parameters, the config **must be the last parameter**.
+
+Config is carried in `Timeax\ConfigSchema\Support\ConfigBag` (from `timeax/ui-config-schema`), which holds `options`
+and `secrets` and provides `option()` / `secret()` helpers.
 
 ---
 
@@ -220,13 +223,8 @@ src/
       CanonicalPayoutStatus.php
       CanonicalRefundStatus.php
 
-      # config + schema
-      GatewayConfig.php
-      GatewayConfigSchema.php
-      ConfigField.php
-      ConfigFieldOption.php
-      ConfigValidationError.php
-      ValidationResult.php
+      # config + schema (from timeax/ui-config-schema)
+      # ConfigBag, ConfigSchema, ConfigField, ConfigValidationResult (external)
       HealthCheckResult.php
 
       # manifest + capabilities
@@ -475,14 +473,14 @@ The host uses a registry to map `driver_key` (from the DB model) to a driver cla
 ### Responsibilities
 
 * Register installed drivers
-* Resolve a driver instance using a `GatewayConfig`
+* Resolve a driver instance using a `ConfigBag`
 * Optionally trigger manifest sync
 
 ```php
 namespace PayKit\Manager;
 
 use PayKit\Contracts\PaymentGatewayDriverContract;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 
 ...
 ```
@@ -499,7 +497,7 @@ It wraps a singleton `GatewayManager`/`GatewayRegistry` and provides:
 * `Pay::register($driverKey, DriverClass::class, ...)`
 * `Pay::registerGateway(GatewayRegistration $reg)`
 * `Pay::setProvider($providerClass)`
-* `Pay::driver($driverKey, GatewayConfig $config)`
+* `Pay::driver($driverKey, ConfigBag $config)`
 * `Pay::via($source)`
 * `Pay::list($filter)`
 
@@ -508,13 +506,13 @@ It wraps a singleton `GatewayManager`/`GatewayRegistry` and provides:
 ```php
 namespace PayKit\Contracts;
 
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 
 interface ProvidesGatewayConfigContract
 {
     public function gatewayDriverKey(): string;
 
-    public function gatewayConfig(): GatewayConfig;
+    public function gatewayConfig(): ConfigBag;
 }
 ```
 
@@ -589,10 +587,10 @@ $list = Pay::list(new GatewayListFilter(
 
 ```php
 use PayKit\Pay;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 
 // Returns PaymentGatewayDriverContract (no capability assertion)
-$driver = Pay::driver('stripe', new GatewayConfig(
+$driver = Pay::driver('stripe', new ConfigBag(
     secrets: ['secret_key' => '...'],
     options: ['environment' => 'test'],
 ));
@@ -604,7 +602,7 @@ $driver = Pay::driver('stripe', new GatewayConfig(
 
 ### Flow A — Install/Enable gateway (manifest sync)
 
-1. Host resolves driver and loads `GatewayConfig` from DB.
+1. Host resolves driver and loads `ConfigBag` from DB.
 2. Host calls `getManifest()`.
 3. Host persists:
 
@@ -643,7 +641,7 @@ Your host gateway record should implement `ProvidesGatewayConfigContract`.
 namespace App\Models;
 
 use PayKit\Contracts\ProvidesGatewayConfigContract;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 
 final class PaymentGateway /* extends Model */ implements ProvidesGatewayConfigContract
 {
@@ -660,10 +658,10 @@ final class PaymentGateway /* extends Model */ implements ProvidesGatewayConfigC
         return $this->driver_key;
     }
 
-    public function gatewayConfig(): GatewayConfig
+    public function gatewayConfig(): ConfigBag
     {
         // secrets should come from encrypted storage in the real host.
-        return new GatewayConfig(secrets: $this->secrets, options: $this->options);
+        return new ConfigBag(secrets: $this->secrets, options: $this->options);
     }
 }
 ```
@@ -682,9 +680,9 @@ namespace App\Payments\Drivers;
 use PayKit\Drivers\AbstractPaymentGatewayDriver;
 use PayKit\Drivers\Concerns\HasConfigSchema;
 use PayKit\Drivers\Concerns\ResolvesConfig;
-use PayKit\Payload\Common\ConfigField;
-use PayKit\Payload\Common\GatewayConfig;
-use PayKit\Payload\Common\ValidationResult;
+use Timeax\ConfigSchema\Schema\ConfigField;
+use Timeax\ConfigSchema\Support\ConfigBag;
+use Timeax\ConfigSchema\Support\ConfigValidationResult;
 
 final class StripeDriver extends AbstractPaymentGatewayDriver
 {
@@ -720,40 +718,38 @@ final class StripeDriver extends AbstractPaymentGatewayDriver
         ];
     }
 
-    public function validateConfig(?GatewayConfig $config = null): ValidationResult
+    public function validateConfig(?ConfigBag $config = null): ConfigValidationResult
     {
-        // Uses HasConfigSchema, but always validate against the resolved config.
-        return $this->validateResolvedConfig($config);
+        $cfg = $this->resolveConfig($config);
+        return $this->configSchema()->validate($cfg);
     }
 }
 ```
 
 > Notes:
 >
-> * `validateResolvedConfig(...)` is a recommended helper that `HasConfigSchema` can provide internally by calling
-    `$this->resolveConfig($config)` and validating required fields.
-> * Config keys live in `GatewayConfig::$secrets` / `GatewayConfig::$options` — the driver reads from the resolved
-    config.
+> * `HasConfigSchema::validateConfig(...)` uses `resolveConfig(...)` if available and validates required fields.
+> * Config values live in `ConfigBag` `secrets` / `options` — the driver reads from the resolved config.
 
 ### 16.3 Stripe health check (required)
 
 PayKit requires drivers to implement their own health check (no default stub).
 
 ```php
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\HealthCheckResult;
 
 final class StripeDriver extends AbstractPaymentGatewayDriver
 {
     // ... config schema above
 
-    public function healthCheck(?GatewayConfig $config = null): HealthCheckResult
+    public function healthCheck(?ConfigBag $config = null): HealthCheckResult
     {
         $cfg = $this->resolveConfig($config);
 
         // Pseudo-check: confirm we have the required keys.
         // Real driver might do a lightweight API call (e.g. retrieve account / balance).
-        $secret = $cfg->getSecret('secret_key');
+        $secret = $cfg->secret('secret_key');
 
         if (!$secret) {
             return HealthCheckResult::fail('Missing secret_key');
@@ -772,7 +768,7 @@ Most Stripe flows return an inline action using a client secret.
 namespace App\Payments\Drivers;
 
 use PayKit\Contracts\PaymentGatewayPaymentsContract;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\CanonicalPaymentStatus;
 use PayKit\Payload\Requests\PaymentInitiateRequest;
 use PayKit\Payload\Responses\InlineAction;
@@ -783,7 +779,7 @@ final class StripeDriver extends AbstractPaymentGatewayDriver implements Payment
 {
     // ... traits + config schema + healthCheck
 
-    public function initiatePayment(PaymentInitiateRequest $request, ?GatewayConfig $config = null): PaymentInitiateResult
+    public function initiatePayment(PaymentInitiateRequest $request, ?ConfigBag $config = null): PaymentInitiateResult
     {
         $cfg = $this->resolveConfig($config);
 
@@ -794,7 +790,7 @@ final class StripeDriver extends AbstractPaymentGatewayDriver implements Payment
         $action = new InlineAction(
             entry: 'stripe.checkout',
             props: [
-                'publishableKey' => $cfg->getSecret('publishable_key'),
+                'publishableKey' => $cfg->secret('publishable_key'),
                 'clientSecret' => $clientSecret,
                 'reference' => (string) $request->reference,
             ],
@@ -822,13 +818,13 @@ Stripe typically needs `https://js.stripe.com/v3/` on checkout pages.
 
 ```php
 use PayKit\Contracts\PaymentGatewayScriptsContract;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\GatewayScript;
 use PayKit\Payload\Common\ScriptLocation;
 
 final class StripeDriver extends AbstractPaymentGatewayDriver implements PaymentGatewayScriptsContract
 {
-    public function getScripts(?GatewayConfig $config = null): array
+    public function getScripts(?ConfigBag $config = null): array
     {
         return [
             new GatewayScript(
@@ -874,19 +870,19 @@ payload.
 
 ```php
 use PayKit\Contracts\PaymentGatewayWebhooksContract;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Events\WebhookEvent;
 use PayKit\Payload\Requests\WebhookRequest;
 use PayKit\Payload\Responses\WebhookVerifyResult;
 
 final class StripeDriver extends AbstractPaymentGatewayDriver implements PaymentGatewayWebhooksContract
 {
-    public function verifyWebhook(WebhookRequest $request, ?GatewayConfig $config = null): WebhookVerifyResult
+    public function verifyWebhook(WebhookRequest $request, ?ConfigBag $config = null): WebhookVerifyResult
     {
         $cfg = $this->resolveConfig($config);
 
         // Pseudo signature validation. Real driver uses Stripe signature header + webhook secret.
-        $secret = $cfg->getSecret('webhook_secret');
+        $secret = $cfg->secret('webhook_secret');
         if (!$secret) {
             return WebhookVerifyResult::fail('Missing webhook secret');
         }
@@ -894,7 +890,7 @@ final class StripeDriver extends AbstractPaymentGatewayDriver implements Payment
         return WebhookVerifyResult::ok();
     }
 
-    public function parseWebhook(WebhookRequest $request, ?GatewayConfig $config = null): WebhookEvent
+    public function parseWebhook(WebhookRequest $request, ?ConfigBag $config = null): WebhookEvent
     {
         // Pseudo parse. Real driver decodes JSON and normalizes event type + provider refs.
         return new WebhookEvent(
@@ -914,14 +910,14 @@ The host calls this during install/enable/config update and persists the result.
 
 ```php
 use PayKit\Contracts\PaymentGatewayManifestProviderContract;
-use PayKit\Payload\Common\GatewayConfig;
+use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\GatewayFeatureSet;
 use PayKit\Payload\Common\GatewayManifest;
 use PayKit\Payload\Common\GatewaySupportMatrix;
 
 final class StripeDriver extends AbstractPaymentGatewayDriver implements PaymentGatewayManifestProviderContract
 {
-    public function getManifest(?GatewayConfig $config = null): GatewayManifest
+    public function getManifest(?ConfigBag $config = null): GatewayManifest
     {
         // Allowed to call provider APIs here if needed (sync-time only).
         // For sample: hard-coded.
