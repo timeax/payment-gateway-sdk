@@ -1,10 +1,12 @@
 # 📦 PayKit Gateway SDK (Contracts + Payloads)
 
-A **business‑agnostic Payment Gateway SDK** that lets a host application integrate multiple payment providers through strict contracts and typed payloads.
+A **business‑agnostic Payment Gateway SDK** that lets a host application integrate multiple payment providers through
+strict contracts and typed payloads.
 
 ✅ What we ship:
 
-* **Contracts (interfaces):** define what a gateway driver can do (payments, refunds, saved cards, virtual accounts, payouts, etc.)
+* **Contracts (interfaces):** define what a gateway driver can do (payments, refunds, saved cards, virtual accounts,
+  payouts, etc.)
 * **Payloads (DTOs):** strict request/response/event shapes (no magic arrays)
 * **Abstract driver base(s):** safe defaults + reusable helpers
 * **Manager/Registry:** resolve drivers by `driver_key`
@@ -44,7 +46,8 @@ This SDK is PSR-4 autoloaded under the `PayKit\` namespace (your package `compos
 
 ## 0.1) Laravel integration (manual, copy-paste)
 
-PayKit ships as a plain Composer library (framework-agnostic). In Laravel, you can bind the manager as a singleton in your **host app**.
+PayKit ships as a plain Composer library (framework-agnostic). In Laravel, you can bind the manager as a singleton in
+your **host app**.
 
 ### Option A — Bind only `GatewayManager` (simplest host DX)
 
@@ -85,7 +88,8 @@ public function register(): void
 }
 ```
 
-> If your constructor signatures differ, adjust the bindings accordingly — the intent is “one registry + one resolver + one manager per app”.
+> If your constructor signatures differ, adjust the bindings accordingly — the intent is “one registry + one resolver +
+> one manager per app”.
 
 ---
 
@@ -93,7 +97,8 @@ public function register(): void
 
 ### 1. Model‑First (Host DB is Source of Truth)
 
-Drivers may discover capabilities (currencies/countries/features) **only during manifest sync**, not at checkout runtime.
+Drivers may discover capabilities (currencies/countries/features) **only during manifest sync**, not at checkout
+runtime.
 
 ### 2. Host‑Controlled Business Effects
 
@@ -137,7 +142,8 @@ PayKit uses a **hybrid config injection** pattern:
 * Contract methods accept an **optional override config**: `?GatewayConfig $config = null`.
 * Resolution rule: **method override > constructor default > error**.
 
-This keeps host code clean in normal flows, while allowing stateless/batch use when needed (e.g., iterating through multiple merchant accounts).
+This keeps host code clean in normal flows, while allowing stateless/batch use when needed (e.g., iterating through
+multiple merchant accounts).
 
 **Rule:** Wherever a method takes both a config and other parameters, the config **must be the last parameter**.
 
@@ -485,7 +491,8 @@ use PayKit\Payload\Common\GatewayConfig;
 
 ### Optional: `Pay` entrypoint (SDK facade)
 
-If you prefer **one import** (and static access) instead of injecting `GatewayManager` everywhere, the SDK includes a small entrypoint: `PayKit\Pay`.
+If you prefer **one import** (and static access) instead of injecting `GatewayManager` everywhere, the SDK includes a
+small entrypoint: `PayKit\Pay`.
 
 It wraps a singleton `GatewayManager`/`GatewayRegistry` and provides:
 
@@ -723,8 +730,10 @@ final class StripeDriver extends AbstractPaymentGatewayDriver
 
 > Notes:
 >
-> * `validateResolvedConfig(...)` is a recommended helper that `HasConfigSchema` can provide internally by calling `$this->resolveConfig($config)` and validating required fields.
-> * Config keys live in `GatewayConfig::$secrets` / `GatewayConfig::$options` — the driver reads from the resolved config.
+> * `validateResolvedConfig(...)` is a recommended helper that `HasConfigSchema` can provide internally by calling
+    `$this->resolveConfig($config)` and validating required fields.
+> * Config keys live in `GatewayConfig::$secrets` / `GatewayConfig::$options` — the driver reads from the resolved
+    config.
 
 ### 16.3 Stripe health check (required)
 
@@ -860,7 +869,8 @@ final class StripeDriver extends AbstractPaymentGatewayDriver implements Payment
 
 ### 16.6 Webhook verification + parsing
 
-If implementing `PaymentGatewayWebhooksContract`, the driver must verify signature and parse to a normalized event payload.
+If implementing `PaymentGatewayWebhooksContract`, the driver must verify signature and parse to a normalized event
+payload.
 
 ```php
 use PayKit\Contracts\PaymentGatewayWebhooksContract;
