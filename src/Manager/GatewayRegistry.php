@@ -141,6 +141,14 @@ final class GatewayRegistry
         return $this->gateways[$this->normalizeGatewayId($gatewayId)] ?? null;
     }
 
+    public function getByDriverKey(string $driver): ?GatewayRegistration
+    {
+        /**
+         * @var GatewayRegistration $gateway
+         */
+        return array_find($this->gateways, static fn($gateway) => $gateway->driverKey === $driver);
+    }
+
     public function hasGateway(int|string $gatewayId): bool
     {
         return isset($this->gateways[$this->normalizeGatewayId($gatewayId)]);

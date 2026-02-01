@@ -201,7 +201,8 @@ final class Pay
 
     private static function resolveProviderFromGatewayId(int|string $gatewayId): ProvidesGatewayConfigContract
     {
-        $reg = self::registry()->getGateway($gatewayId);
+        $registry = self::registry();
+        $reg = $registry->getGateway($gatewayId) ?? $registry->getByDriverKey($gatewayId);
 
         if (!$reg) {
             self::reportWarn('pay.via.resolveProvider', "Gateway '$gatewayId' is not registered in the GatewayRegistry.", [
