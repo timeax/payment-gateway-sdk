@@ -446,12 +446,7 @@ final class Pay
      */
     private static function containsAnyCode(array $supported, array $wanted): bool
     {
-        foreach ($wanted as $c) {
-            if (self::containsCode($supported, $c->code)) {
-                return true;
-            }
-        }
-        return false;
+        return array_any($wanted, static fn($c) => self::containsCode($supported, $c->code));
     }
 
     /**

@@ -6,7 +6,7 @@ use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\HealthCheckResult;
 use Timeax\ConfigSchema\Contracts\ProvidesConfigSchema;
 
-interface PaymentGatewayDriverContract extends ProvidesConfigSchema, PaymentGatewayWebhooksContract
+interface PaymentGatewayDriverContract extends ProvidesConfigSchema, PaymentGatewayWebhooksContract, PaymentGatewayManifestProviderContract
 {
     public function driverKey(): string;
 
