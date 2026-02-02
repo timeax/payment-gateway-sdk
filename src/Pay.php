@@ -218,11 +218,12 @@ final class Pay
 
         try {
             /** @var ProvidesGatewayConfigContract $provider */
-            $provider = new $providerClass($gatewayId);
+            $provider = new $providerClass($reg->gatewayId);
             return $provider;
         } catch (Throwable $e) {
             self::reportError('pay.via.resolveProvider', $e, [
-                'gatewayId' => $gatewayId,
+                'gatewayId' => $reg->gatewayId,
+                'providedKey' => $gatewayId,
                 'driverKey' => $reg->driverKey,
                 'providerClass' => $providerClass,
             ]);
