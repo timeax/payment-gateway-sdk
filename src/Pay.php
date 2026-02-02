@@ -382,16 +382,7 @@ final class Pay
                 $config = new ConfigBag(options: [], secrets: []);
             }
 
-            $driver = self::manager()->make($driverKey, $config, false);
-
-            if (!$driver instanceof PaymentGatewayManifestProviderContract) {
-                self::reportWarn('pay.list.manifest', 'Driver does not implement manifest provider contract.', [
-                    'driverKey' => $driverKey,
-                ]);
-                return null;
-            }
-
-            return $driver->getManifest($config);
+            return self::manager()->make($driverKey, $config, false)->getManifest($config);
         } catch (Throwable $e) {
             self::reportError('pay.list.manifest', $e, [
                 'driverKey' => $driverKey,

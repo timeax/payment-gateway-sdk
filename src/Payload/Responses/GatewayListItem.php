@@ -67,7 +67,7 @@ final readonly class GatewayListItem implements JsonSerializable
             'driverKey' => $this->driverKey,
             'gatewayId' => $this->gatewayId,
             'manifest' => $this->manifest,
-            'info' => (object)$this->info,
+            'info' => $this->info,
             'currencies' => $this->currencies,
             'providerClass' => $this->providerClass,
         ];
