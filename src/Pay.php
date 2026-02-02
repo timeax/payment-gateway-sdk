@@ -16,7 +16,10 @@ use PayKit\Exceptions\GatewayDriverNotFoundException;
 use PayKit\Manager\DriverResolver;
 use PayKit\Manager\GatewayManager;
 use PayKit\Manager\GatewayRegistry;
+use PayKit\Payload\Common\Country;
 use PayKit\Payload\Common\Currency;
+use PayKit\Payload\Common\SupportedCountry;
+use PayKit\Payload\Common\SupportedCurrency;
 use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Common\GatewayManifest;
 use PayKit\Payload\Common\GatewayRegistration;
@@ -235,6 +238,11 @@ final class Pay
         }
     }
 
+    /**
+     * @param GatewayListFilter|null $filter
+     * @param bool $includeDriversWithoutGateways
+     * @return GatewayListResult
+     */
     public static function list(?GatewayListFilter $filter = null, bool $includeDriversWithoutGateways = true): GatewayListResult
     {
         $filter ??= new GatewayListFilter();
@@ -255,7 +263,6 @@ final class Pay
         foreach ($drivers as $driverKey => $_driverClass) {
             // 1) Resolve a manifest (driver-level)
             $manifest = self::resolveManifestForList($driverKey, $gatewaysByDriver[$driverKey][0] ?? null, $filter);
-
             // 2) Driver-level filtering (manifest is priority for generic filtering)
             if ($manifest && !self::manifestPassesFilter($manifest, $filter)) {
                 continue;
@@ -394,6 +401,8 @@ final class Pay
         }
     }
 
+    /**
+     */
     private static function manifestPassesFilter(GatewayManifest $manifest, GatewayListFilter $filter): bool
     {
         // currencies (any-of)
@@ -405,6 +414,7 @@ final class Pay
                 return false;
             }
         }
+
 
         // country (single)
         if ($filter->country) {
@@ -503,37 +513,35 @@ final class Pay
             return $it->code;
         }
 
-        if (is_string($it)) {
-            return $it;
+        if ($it instanceof Country) {
+            return $it->code;
         }
 
-        if (is_object($it)) {
-            if (property_exists($it, 'code')) {
-                return (string)$it->code;
-            }
-            if (property_exists($it, 'currency') && $it->currency instanceof Currency) {
-                return $it->currency->code;
-            }
+        if ($it instanceof SupportedCountry) {
+            return $it->country->code;
+        }
+
+        if ($it instanceof SupportedCurrency) {
+            return $it->currency->code;
+        }
+
+        if (is_string($it)) {
+            return $it;
         }
 
         return null;
     }
 
     /**
-     * @param array<int,mixed> $items
+     * @param array<int,SupportedCurrency|SupportedCountry|Country|Currency> $items
      */
     private static function containsCode(array $items, string $code): bool
     {
         $code = strtoupper($code);
 
         foreach ($items as $c) {
-            if (is_object($c) && property_exists($c, 'code') && strtoupper((string)$c->code) === $code) {
-                return true;
-            }
-            if (is_array($c) && isset($c['code']) && strtoupper((string)$c['code']) === $code) {
-                return true;
-            }
-            if (is_string($c) && strtoupper($c) === $code) {
+            $supported = self::codeOf($c);
+            if (strtoupper($code) === strtoupper($supported)) {
                 return true;
             }
         }
