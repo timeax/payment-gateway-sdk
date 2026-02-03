@@ -9,7 +9,7 @@ use PayKit\Payload\Responses\WebhookVerifyResult;
 
 interface PaymentGatewayVirtualAccountWebhookWatcherContract
 {
-    public function verifyWebhook(WebhookRequest $request, ?ConfigBag $config = null): WebhookVerifyResult;
+    public function verifyVirtualWebhook(WebhookRequest $request, ?ConfigBag $config = null): WebhookVerifyResult;
 
     public function parseVirtualAccountEvent(WebhookRequest $request, ?ConfigBag $config = null): VirtualAccountEvent;
 }
