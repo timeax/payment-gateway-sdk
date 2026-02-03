@@ -16,20 +16,20 @@ final readonly class VirtualAccountEvent implements JsonSerializable
      * @param array<string,mixed>|string|null $rawProviderPayload
      */
     public function __construct(
-        public string            $type, // "credited"|"debited"|"created"|"deactivated"|"updated"|...
+        public VirtualAccountEventType $type,
 
-        public string            $virtualAccountId,
+        public string                  $virtualAccountId,
 
-        public ?string           $ledgerEntryId = null,
+        public ?string                 $ledgerEntryId = null,
 
-        public ?Money            $amount = null,
+        public ?Money                  $amount = null,
 
-        public ?Reference        $reference = null,
-        public ?ProviderRef      $providerRef = null,
+        public ?Reference              $reference = null,
+        public ?ProviderRef            $providerRef = null,
 
-        public ?string           $occurredAt = null, // ISO string
-        ?Metadata                $meta = null,
-        public array|string|null $rawProviderPayload = null,
+        public ?string                 $occurredAt = null, // ISO string
+        ?Metadata                      $meta = null,
+        public array|string|null       $rawProviderPayload = null,
     )
     {
         $this->meta = $meta ?? new Metadata([]);
@@ -38,7 +38,7 @@ final readonly class VirtualAccountEvent implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            'type' => $this->type,
+            'type' => $this->type->value,
             'virtualAccountId' => $this->virtualAccountId,
             'ledgerEntryId' => $this->ledgerEntryId,
             'amount' => $this->amount?->toArray(),
@@ -50,4 +50,3 @@ final readonly class VirtualAccountEvent implements JsonSerializable
         ];
     }
 }
-
