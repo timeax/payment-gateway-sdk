@@ -26,14 +26,15 @@ final readonly class MonetaryBreakdown implements JsonSerializable
      * - For refunds/payouts, “paid” can be interpreted as “moved” (funds sent/charged).
      */
     public function __construct(
-        public ?Money $amount = null,
-        public ?Money $fee = null,
-
-        public ?Money $amountPaid = null,
-        public ?Money $amountAccepted = null,
-        public ?Money $amountSettled = null,
-        public ?Money $amountNet = null,
-    ) {}
+        public Money $amount,
+        public Money $fee,
+        public Money $amountPaid,
+        public Money $amountAccepted,
+        public Money $amountSettled,
+        public Money $amountNet,
+    )
+    {
+    }
 
     public function jsonSerialize(): array
     {
