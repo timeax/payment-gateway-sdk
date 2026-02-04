@@ -18,6 +18,7 @@ final readonly class InlineAction implements NextAction
     public function __construct(
         public array            $scriptKeys = [],     // e.g. ["stripe-js"]
         public array            $clientConfig = [],
+        public ?string          $callable = null,
         public ?InlineMountSpec $mount = null,
     )
     {
@@ -41,6 +42,7 @@ final readonly class InlineAction implements NextAction
             'scriptKeys' => $this->scriptKeys,
             'scripts' => $this->scripts,
             'clientConfig' => $this->clientConfig,
+            'callable' => $this->callable,
             'mount' => $this->mount?->jsonSerialize(),
         ];
     }
