@@ -1,38 +1,46 @@
 # 📦 PayKit Gateway SDK (Contracts + Payloads)
 
-A **business‑agnostic Payment Gateway SDK** that lets a host application integrate multiple payment providers through
-strict contracts and typed payloads.
+[![PHP Version](https://img.shields.io/badge/php-%5E8.2-blue.svg)](https://packagist.org/packages/timeax/paykit-sdk)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Build Status](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
+[![Static Analysis](https://img.shields.io/badge/phpstan-level%200%20clean-brightgreen.svg)](phpstan.neon)
 
-✅ What we ship:
-
-* **Contracts (interfaces):** define what a gateway driver can do (payments, refunds, saved cards, virtual accounts,
-  payouts, etc.)
-* **Payloads (DTOs):** strict request/response/event shapes (no magic arrays)
-* **Abstract driver base(s):** safe defaults + reusable helpers
-* **Manager/Registry:** resolve drivers by `driver_key`
-* **Frontend primitives:** scripts + UI module manifests (framework‑agnostic)
-
-❌ What we do **not** ship:
-
-* Checkout/cart/invoice semantics (the SDK never cares what the payment is for)
-* Host database schema or migrations (hosts persist manifests/capabilities however they want)
-* A UI framework implementation (React/Vue/etc. are host concerns)
-
-> Source of truth: only `src/` is the SDK public surface.
+A **business-agnostic, enterprise-grade Financial Infrastructure Protocol Engine** that enables host PHP applications to integrate multiple payment and banking providers (Stripe, Adyen, Paystack, Flutterwave, Airwallex, Marqeta) through strict contracts and strongly-typed payloads.
 
 ---
 
-## 0) Installation
+## 🎯 What We Ship
+
+* **Strict Contracts (interfaces):** 39 granular PHP interfaces defining payment, refund, payout, bulk transfer, virtual account, double-entry ledger, balance snapshot, virtual card issuing, and webhook deduplication capabilities.
+* **Typed Payloads (DTOs):** Immutable PHP 8.2+ request, response, and event objects (zero untyped arrays for core domain operations).
+* **Elqora Interaction Protocol Integration:** Standardized frontend-host UI flow descriptions via [`elqora/interactions`](https://github.com/elqora/interactions).
+* **Manager & Capability Engine:** DB-first driver registry and manifest resolution system for high-performance runtime filtering.
+* **Abstract Driver Bases:** Safe defaults, reusable configuration helpers, and schema validation tools.
+
+---
+
+## ❌ What We Do NOT Ship
+
+* Checkout/cart/invoice semantics (the SDK is strictly decoupled from host business domains).
+* Host database schemas or migrations (hosts persist manifests and capabilities however they choose).
+* Vendor-specific HTTP clients inside `src/` (drivers implement contracts using Guzzle, Symfony HTTP, or custom SDKs).
+
+> **Source of Truth:** Only `src/` is the SDK public API surface.
+
+---
+
+## 0) Installation & Requirements
+
+### PHP Version
+Requires **PHP 8.2+** with `ext-json` and `ext-mbstring`.
 
 ### Composer
-
 ```bash
 composer require timeax/paykit-sdk
 ```
 
 ### Namespace / Autoloading
-
-This SDK is PSR-4 autoloaded under the `PayKit\` namespace (your package `composer.json` should use):
+This SDK is PSR-4 autoloaded under the `PayKit\` namespace:
 
 ```json
 "autoload": {
@@ -44,117 +52,332 @@ This SDK is PSR-4 autoloaded under the `PayKit\` namespace (your package `compos
 
 ---
 
-## 0.1) Laravel integration (manual, copy-paste)
+## 0.1) Laravel Integration (Service Provider Binding)
 
-PayKit ships as a plain Composer library (framework-agnostic). In Laravel, you can bind the manager as a singleton in
-your **host app**.
-
-### Option A — Bind only `GatewayManager` (simplest host DX)
+PayKit is framework-agnostic. In Laravel host applications, bind `GatewayManager` as a singleton in your `AppServiceProvider`:
 
 ```php
-// app/Providers/AppServiceProvider.php
+namespace App\Providers;
 
-use PayKit\Manager\GatewayManager;
-
-public function register(): void
-{
-    $this->app->singleton(GatewayManager::class, fn () => new GatewayManager());
-}
-```
-
-### Option B — Bind the full manager stack (explicit singletons)
-
-```php
-// app/Providers/AppServiceProvider.php
-
+use Illuminate\Support\ServiceProvider;
+use PayKit\Manager\DriverResolver;
 use PayKit\Manager\GatewayManager;
 use PayKit\Manager\GatewayRegistry;
-use PayKit\Manager\DriverResolver;
 
-public function register(): void
+class AppServiceProvider extends ServiceProvider
 {
-    $this->app->singleton(GatewayRegistry::class, fn () => new GatewayRegistry());
+    public function register(): void
+    {
+        $this->app->singleton(GatewayRegistry::class, fn () => new GatewayRegistry());
 
-    $this->app->singleton(DriverResolver::class, fn ($app) =>
-        new DriverResolver($app->make(GatewayRegistry::class))
-    );
+        $this->app->singleton(DriverResolver::class, fn ($app) =>
+            new DriverResolver($app->make(GatewayRegistry::class))
+        );
 
-    $this->app->singleton(GatewayManager::class, fn ($app) =>
-        new GatewayManager(
-            $app->make(GatewayRegistry::class),
-            $app->make(DriverResolver::class),
-        )
-    );
+        $this->app->singleton(GatewayManager::class, fn ($app) =>
+            new GatewayManager($app->make(DriverResolver::class))
+        );
+    }
 }
 ```
 
-> If your constructor signatures differ, adjust the bindings accordingly — the intent is “one registry + one resolver +
-> one manager per app”.
+---
+
+## 1) Core Architectural Principles
+
+### 1. Model-First (Host DB is Source of Truth)
+Drivers discover support matrices (currencies, countries, capability flags) **only during manifest synchronization**, never at checkout runtime. Checkout filtering occurs in local database space without triggering high-latency third-party HTTP calls.
+
+### 2. Host-Controlled Business Logic
+Drivers communicate with payment vendors and report canonical statuses. The host application decides what "succeeded" means (e.g., crediting a user wallet, fulfilling an order, or releasing a digital asset).
+
+### 3. Capability-by-Contract
+New capabilities are introduced as discrete, isolated PHP interfaces in [`src/Contracts/`](file:///d:/Projects/GitHub/payment-gateway-sdk/src/Contracts). Feature support is verified via standard PHP runtime introspection (`$driver instanceof PaymentGatewayBulkPayoutsContract`).
+
+### 4. Strict Typed Payloads & Idempotency
+Core domain methods accept strongly-typed DTOs with explicit `IdempotencyKey` value objects and `GatewayFailure` error payloads.
 
 ---
 
-## 1) Core philosophy
-
-### 1. Model‑First (Host DB is Source of Truth)
-
-Drivers may discover capabilities (currencies/countries/features) **only during manifest sync**, not at checkout
-runtime.
-
-### 2. Host‑Controlled Business Effects
-
-* Drivers only talk to providers.
-* Hosts decide what “paid” means (credit wallet, place orders, grant access, etc.).
-
-### 3. Strict Contracts + Payloads
-
-Everything is typed. No random associative arrays for core flows.
-
-### 4. Capability‑by‑Contract
-
-New features are optional contracts, not scattered flags.
+## 2) Code Examples by Financial Domain
 
 ---
 
-## 2) What this SDK solves
+### 2.1 Core Payments & Elqora Interactions
 
-* A single integration surface across many providers.
-* Normalized statuses (canonical sets).
-* A manifest/capability engine so checkout can be DB‑filtered without calling provider APIs.
-* Optional frontend integration metadata (scripts + UI module keys).
+Initiate a payment and receive a canonical status along with an **Elqora Interaction** (`Redirect`, `Instructions`, `QrCode`, `Component`, `Mount`, `Script`):
+
+```php
+use PayKit\Pay;
+use PayKit\Payload\Common\Amount;
+use PayKit\Payload\Common\Currency;
+use PayKit\Payload\Common\Money;
+use PayKit\Payload\Common\Reference;
+use PayKit\Payload\Requests\PaymentInitiateRequest;
+
+// Resolve driver singleton or via manager
+$driver = Pay::via('stripe', $configBag);
+
+$request = new PaymentInitiateRequest(
+    reference: new Reference('order_9901'),
+    money: new Money(Amount::from(5000), new Currency('USD')),
+    customerEmail: 'customer@example.com',
+    customerName: 'Jane Doe'
+);
+
+$result = $driver->initiatePayment($request);
+
+if ($result->status->value === 'pending' && $result->interaction !== null) {
+    // Interaction automatically serializes to canonical flat wire format for frontend execution
+    $wirePayload = $result->interaction->toArray();
+    /*
+    [
+        'type' => 'redirect',
+        'url' => 'https://checkout.stripe.com/pay/cs_test_123',
+        'target' => '_self'
+    ]
+    */
+}
+```
 
 ---
 
-## 3) Glossary
+### 2.2 Outward Payouts, Sources & Typed Destinations
 
-* **Driver:** Provider implementation (Stripe, Paystack, Flutterwave, etc.).
-* **Manifest:** Driver’s support/capability snapshot (currencies, countries, features).
-* **Support Matrix:** What the driver supports (where/what currencies/countries).
-* **Feature Set:** What the driver can do (refunds, saved cards, virtual accounts, payouts, etc.).
-* **UI Manifest:** Framework‑agnostic frontend module descriptors.
+Route single payouts to bank accounts, mobile money wallets, cards, crypto addresses, or beneficiaries:
+
+```php
+use PayKit\Payload\Common\BankAccountDestination;
+use PayKit\Payload\Common\IdempotencyKey;
+use PayKit\Payload\Common\Money;
+use PayKit\Payload\Common\PayoutDestination;
+use PayKit\Payload\Common\PayoutSource;
+use PayKit\Payload\Common\PayoutSourceType;
+use PayKit\Payload\Common\Reference;
+use PayKit\Payload\Requests\PayoutRequest;
+
+// 1. Create a strongly-typed destination payload
+$bankDestination = new PayoutDestination(
+    payload: new BankAccountDestination(
+        accountNumber: '0123456789',
+        accountName: 'John Doe',
+        bankCode: '058',
+        routingNumber: '123456',
+        providerData: ['nibss_code' => '000013']
+    )
+);
+
+// 2. Define explicit payout source (Virtual Account, Provider Balance, or Balance Account)
+$source = new PayoutSource(
+    type: PayoutSourceType::virtual_account,
+    sourceId: 'va_987654'
+);
+
+// 3. Initiate Payout with explicit IdempotencyKey
+$payoutRequest = new PayoutRequest(
+    reference: new Reference('payout_7711'),
+    money: Money::from(25000, 'NGN'),
+    destination: $bankDestination,
+    source: $source,
+    idempotencyKey: new IdempotencyKey('idemp_po_7711'),
+    narration: 'Monthly vendor settlement'
+);
+
+$payoutResult = $driver->initiatePayout($payoutRequest);
+
+echo $payoutResult->status->value; // "processing" | "succeeded" | "requires_action"
+echo $payoutResult->netAmount?->toArray()['amount']; // Net settled funds
+```
 
 ---
 
-## 4) Config injection (Hybrid)
+### 2.3 Bulk Payouts & Batch Transfers
 
-PayKit uses a **hybrid config injection** pattern:
+Submit thousands of itemized payouts in a single batch with item-level status tracking:
 
-* Drivers may receive a **default config** in the constructor (standard “manager” flow).
-* Contract methods accept an **optional override config**: `?ConfigBag $config = null`.
-* Resolution rule: **method override > constructor default > error**.
+```php
+use PayKit\Payload\Common\BulkPayoutItem;
+use PayKit\Payload\Common\MobileMoneyDestination;
+use PayKit\Payload\Common\Money;
+use PayKit\Payload\Common\PayoutDestination;
+use PayKit\Payload\Common\Reference;
+use PayKit\Payload\Requests\BulkPayoutRequest;
 
-This keeps host code clean in normal flows, while allowing stateless/batch use when needed (e.g., iterating through
-multiple merchant accounts).
+$item1 = new BulkPayoutItem(
+    itemId: 'item_01',
+    money: Money::from(1500, 'GHS'),
+    destination: (new PayoutDestination(
+        payload: new MobileMoneyDestination(phoneNumber: '+233241234567', operator: 'mtn')
+    ))->payload
+);
 
-**Rule:** Wherever a method takes both a config and other parameters, the config **must be the last parameter**.
+$bulkRequest = new BulkPayoutRequest(
+    reference: new Reference('batch_2026_07'),
+    items: [$item1],
+    title: 'Payroll Batch'
+);
 
-Config is carried in `Timeax\ConfigSchema\Support\ConfigBag` (from `timeax/ui-config-schema`), which holds `options`
-and `secrets` and provides `option()` / `secret()` helpers.
+$bulkResult = $driver->initiateBulkPayout($bulkRequest);
+
+echo $bulkResult->totalCount;   // Total items in batch
+echo $bulkResult->successCount; // Successfully processed items
+```
 
 ---
 
-## 5) `src/` folder structure (reference)
+### 2.4 Account Resolution & Destination Validation
 
-> This is the canonical `src/` layout.
+Verify bank account numbers, IBANs, or mobile money names before payout execution:
+
+```php
+use PayKit\Payload\Common\BankAccountDestination;
+use PayKit\Payload\Requests\PayoutDestinationResolveRequest;
+
+$resolveRequest = new PayoutDestinationResolveRequest(
+    destination: new BankAccountDestination(
+        accountNumber: '0123456789',
+        bankCode: '058'
+    )
+);
+
+$resolution = $driver->resolvePayoutDestination($resolveRequest);
+
+if ($resolution->resolved) {
+    echo $resolution->accountName; // "Verified Account Name"
+}
+```
+
+---
+
+### 2.5 Virtual Accounts & Compliance Identity (KYC / KYB)
+
+Provision dedicated collection accounts or single-use payment vIBANs with structured compliance identifiers:
+
+```php
+use PayKit\Payload\Common\Country;
+use PayKit\Payload\Common\CustomerIdentity;
+use PayKit\Payload\Common\IdentityIdentifier;
+use PayKit\Payload\Common\Reference;
+use PayKit\Payload\Common\VirtualAccountPurpose;
+use PayKit\Payload\Common\VirtualAccountUsage;
+use PayKit\Payload\Requests\VirtualAccountCreateRequest;
+
+$customer = new CustomerIdentity(
+    providerCustomerId: 'cus_8899',
+    name: 'Alice Smith',
+    email: 'alice@example.com',
+    phone: '+2348012345678',
+    identifiers: [
+        new IdentityIdentifier(type: 'bvn', value: '22113344556', country: new Country('NG')),
+        new IdentityIdentifier(type: 'nin', value: '11223344556', country: new Country('NG')),
+    ]
+);
+
+$vaRequest = new VirtualAccountCreateRequest(
+    reference: new Reference('va_req_100'),
+    ownerKey: 'usr_4455',
+    purpose: VirtualAccountPurpose::collection,
+    usage: VirtualAccountUsage::reusable,
+    customer: $customer
+);
+
+$provisionResult = $driver->createVirtualAccount($vaRequest);
+echo $provisionResult->status->value; // "active" | "pending"
+```
+
+---
+
+### 2.6 Balances, Double-Entry Ledgers & Internal Transfers
+
+Inspect balance snapshots, query double-entry accounting transactions, or move funds internally:
+
+```php
+use PayKit\Payload\Requests\LedgerQuery;
+use PayKit\Payload\Requests\TransferRequest;
+
+// 1. Get Balance Snapshot
+$balance = $driver->getBalance('bal_account_01');
+echo $balance->balances->available->toArray()['amount']; // Cleared funds
+
+// 2. Query Accounting Ledger Page
+$ledgerPage = $driver->getLedger(new LedgerQuery(accountId: 'bal_account_01', limit: 20));
+
+foreach ($ledgerPage->items as $transaction) {
+    echo $transaction->direction->value; // "credit" | "debit"
+    echo $transaction->type->value;      // "payment", "payout", "fee", "transfer"
+    echo $transaction->bookedAt;         // Booking ISO timestamp
+}
+
+// 3. Internal Account Movement (No outward banking fees)
+$transferResult = $driver->transfer(new TransferRequest(
+    reference: new Reference('xfer_3322'),
+    sourceAccountId: 'bal_01',
+    destinationAccountId: 'bal_02',
+    money: Money::from(500, 'USD')
+));
+```
+
+---
+
+### 2.7 Modular Virtual Cards & Spending Controls
+
+Provision virtual cards, update velocity/MCC controls, process JIT webhook authorizations, or request PCI-isolated card reveal sessions:
+
+```php
+use PayKit\Payload\Common\CardControls;
+use PayKit\Payload\Common\Currency;
+use PayKit\Payload\Common\Money;
+use PayKit\Payload\Common\Reference;
+use PayKit\Payload\Requests\VirtualCardControlsRequest;
+use PayKit\Payload\Requests\VirtualCardCreateRequest;
+
+// 1. Issue Virtual Card
+$card = $driver->createCard(new VirtualCardCreateRequest(
+    reference: new Reference('card_req_01'),
+    cardholderName: 'Alice Smith',
+    currency: new Currency('USD'),
+    controls: new CardControls(
+        perTransactionLimit: Money::from(10000, 'USD'),
+        dailyLimit: Money::from(50000, 'USD'),
+        allowedMccs: ['5732', '5812']
+    )
+));
+
+// 2. Freeze Card
+$frozenCard = $driver->freezeCard($card->id);
+
+// 3. Request PCI-isolated Reveal Token for PAN/CVV display
+$revealSession = $driver->createCardRevealSession($card->id);
+echo $revealSession->ephemeralToken; // Token used by frontend iframe
+```
+
+---
+
+### 2.8 Webhook Event Deduplication
+
+Prevent duplicate business execution from third-party webhook retries using the framework-agnostic `WebhookDeduplicator`:
+
+```php
+use PayKit\Support\ArrayEventLockStore;
+use PayKit\Support\WebhookDeduplicator;
+
+$deduplicator = new WebhookDeduplicator(new ArrayEventLockStore()); // Or host PSR-16 cache
+
+$result = $deduplicator->executeOnce(
+    driverKey: 'stripe',
+    eventId: 'evt_3M2e512eZvKYlo2C0',
+    callback: function () use ($orderId) {
+        // Business logic runs exactly once
+        Order::fulfill($orderId);
+        return true;
+    },
+    ttlSeconds: 86400 // Lock for 24 hours
+);
+```
+
+---
+
+## 3) Canonical `src/` Layout Sitemap
 
 ```text
 src/
@@ -168,50 +391,61 @@ src/
     PaymentGatewayAvailabilityContract.php
     PaymentGatewayRequirementsContract.php
     ProvidesGatewayConfigContract.php
+    ProvidesGatewayErrorLogContract.php
+    ProvidesGatewayInfoContract.php
+    EvaluatesGatewayVisibilityContract.php
 
-    # --- core payments ---
+    # --- core payments & webhooks ---
     PaymentGatewayPaymentsContract.php
     PaymentGatewayPaymentStatusMapperContract.php
     PaymentGatewayVerificationContract.php
-
-    # --- webhooks / events ---
     PaymentGatewayWebhooksContract.php
 
-    # --- frontend integration ---
+    # --- saved methods & tokenization ---
+    PaymentGatewaySavedMethodsContract.php
+    PaymentGatewayCardTokenizationContract.php
+
+    # --- refunds & disputes ---
+    PaymentGatewayRefundsContract.php
+    PaymentGatewayDisputesContract.php
+
+    # --- virtual accounts & watchers ---
+    PaymentGatewayVirtualAccountsContract.php
+    PaymentGatewayVirtualAccountWebhookWatcherContract.php
+    PaymentGatewayVirtualAccountPollingWatcherContract.php
+    PaymentGatewayVirtualAccountReconcileContract.php
+    PaymentGatewayInboundTransferApprovalContract.php
+
+    # --- payouts & bulk transfers ---
+    PaymentGatewayPayoutsContract.php
+    PaymentGatewayBulkPayoutsContract.php
+    PaymentGatewayPayoutDestinationResolverContract.php
+    PaymentGatewayPayoutMethodsContract.php
+    PaymentGatewayBeneficiariesContract.php
+
+    # --- balances, ledger & transfers ---
+    PaymentGatewayBalancesContract.php
+    PaymentGatewayLedgerContract.php
+    PaymentGatewayTransfersContract.php
+
+    # --- virtual cards issuing suite ---
+    PaymentGatewayCardIssuingContract.php
+    PaymentGatewayCardManagementContract.php
+    PaymentGatewayCardControlsContract.php
+    PaymentGatewayCardTransactionsContract.php
+    PaymentGatewayCardAuthorizationWatcherContract.php
+    PaymentGatewayCardSensitiveDetailsContract.php
+
+    # --- reconciliation & diagnostics ---
+    PaymentGatewayReconcileContract.php
+    PaymentGatewayDiagnosticsContract.php
     PaymentGatewayScriptsContract.php
     PaymentGatewayUiContract.php
     PaymentGatewayFrontendConfigContract.php
 
-    # --- saved methods + card tokenization ---
-    PaymentGatewaySavedMethodsContract.php
-    PaymentGatewayCardTokenizationContract.php
-
-    # --- refunds + disputes ---
-    PaymentGatewayRefundsContract.php
-    PaymentGatewayDisputesContract.php
-
-    # --- virtual accounts ---
-    PaymentGatewayVirtualAccountsContract.php
-    PaymentGatewayVirtualAccountLedgerContract.php
-    PaymentGatewayVirtualAccountWithdrawalsContract.php
-    PaymentGatewayVirtualAccountWebhookWatcherContract.php
-    PaymentGatewayVirtualAccountPollingWatcherContract.php
-    PaymentGatewayVirtualAccountReconcileContract.php
-
-    # --- payouts ---
-    PaymentGatewayPayoutsContract.php
-    PaymentGatewayBeneficiariesContract.php
-
-    # --- virtual cards ---
-    PaymentGatewayVirtualCardsContract.php
-
-    # --- reconciliation + diagnostics ---
-    PaymentGatewayReconcileContract.php
-    PaymentGatewayDiagnosticsContract.php
-
   Payload/
     Common/
-      # primitives
+      # primitives & enums
       Money.php
       Amount.php
       Currency.php
@@ -219,752 +453,146 @@ src/
       Reference.php
       ProviderRef.php
       Metadata.php
+      IdempotencyKey.php
+      GatewayFailure.php
       CanonicalPaymentStatus.php
       CanonicalPayoutStatus.php
       CanonicalRefundStatus.php
+      VirtualAccountPurpose.php
+      VirtualAccountUsage.php
+      VirtualAccountStatus.php
+      BeneficiaryStatus.php
+      VirtualCardStatus.php
+      AccountTransactionDirection.php
+      AccountTransactionType.php
+      PayoutSourceType.php
+      InboundTransferDecision.php
 
-      # config + schema (from timeax/ui-config-schema)
-      # ConfigBag, ConfigSchema, ConfigField, ConfigValidationResult (external)
-      HealthCheckResult.php
+      # compliance & identity
+      CustomerIdentity.php
+      IdentityIdentifier.php
 
-      # manifest + capabilities
+      # payout destinations
+      PayoutDestinationPayload.php
+      PayoutDestination.php
+      BankAccountDestination.php
+      MobileMoneyDestination.php
+      WalletDestination.php
+      CardDestination.php
+      CryptoDestination.php
+      BeneficiaryDestination.php
+      ProviderBalanceDestination.php
+      PayoutSource.php
+      BulkPayoutItem.php
+
+      # balances, ledger & cards
+      BalanceAmount.php
+      BalanceAccount.php
+      AccountTransaction.php
+      VirtualCardRecord.php
+      CardControls.php
+      Beneficiary.php
+      SavedMethod.php
+      CardSummary.php
+      CardBrand.php
+      CardFingerprint.php
+
+      # manifest & capabilities
       GatewayManifest.php
       GatewayFeatureSet.php
       GatewaySupportMatrix.php
       SupportedCurrency.php
       SupportedCountry.php
       GatewayRequirements.php
-      UiManifest.php
-      UiModuleDescriptor.php
-      UiEntryDescriptor.php
-
-      # scripts
-      GatewayScript.php
-      ScriptLocation.php
-
-      # saved methods/cards
-      SavedMethod.php
-      CardSummary.php
-      CardBrand.php
-      CardFingerprint.php
-
-      # virtual accounts/cards
-      VirtualAccount.php
-      VirtualAccountBank.php
-      VirtualCardRecord.php
-
-      # payouts
-      PayoutDestination.php
-      PayoutMethod.php
-      Beneficiary.php
 
     Requests/
-      # payments
       PaymentInitiateRequest.php
       PaymentVerifyRequest.php
-
-      # webhooks
-      WebhookRequest.php
-
-      # refunds/disputes
+      PayoutRequest.php
+      PayoutVerifyRequest.php
+      BulkPayoutRequest.php
+      BulkPayoutVerifyRequest.php
+      PayoutDestinationResolveRequest.php
+      VirtualAccountCreateRequest.php
+      VirtualAccountGetRequest.php
+      ListVirtualAccountsRequest.php
+      InboundTransferDecisionRequest.php
+      LedgerQuery.php
+      TransferRequest.php
+      VirtualCardCreateRequest.php
+      VirtualCardGetRequest.php
+      ListVirtualCardsRequest.php
+      VirtualCardStatusUpdateRequest.php
+      VirtualCardControlsRequest.php
+      BeneficiaryCreateRequest.php
+      BeneficiaryUpdateRequest.php
       RefundRequest.php
       RefundVerifyRequest.php
       DisputeQuery.php
 
-      # saved methods/cards
-      ListMethodsRequest.php
-      GetMethodRequest.php
-      AttachMethodRequest.php
-      DetachMethodRequest.php
-      SetDefaultMethodRequest.php
-      CardTokenizeRequest.php
-
-      # virtual accounts
-      VirtualAccountCreateRequest.php
-      VirtualAccountAssignRequest.php
-      VirtualAccountGetRequest.php
-      ListVirtualAccountsRequest.php
-      DeactivateVirtualAccountRequest.php
-      VirtualAccountLedgerQuery.php
-      VirtualAccountLedgerEntryQuery.php
-      VirtualAccountWithdrawalRequest.php
-      VirtualAccountWithdrawalVerifyRequest.php
-
-      # watchers / polling
-      PollVirtualAccountEventsQuery.php
-      ReconcileQuery.php
-
-      # payouts
-      PayoutRequest.php
-      PayoutVerifyRequest.php
-      BeneficiaryCreateRequest.php
-      BeneficiaryUpdateRequest.php
-
-      # frontend config
-      FrontendConfigRequest.php
-
     Responses/
-      # payments + next action
       PaymentInitiateResult.php
-      NextAction.php
-      RedirectAction.php
-      InlineAction.php
-      PopupAction.php
-      QrCodeAction.php
-      InstructionsAction.php
-
       PaymentVerifyResult.php
-
-      # webhooks
-      WebhookVerifyResult.php
-
-      # refunds/disputes
-      RefundResult.php
-      RefundStatusResult.php
-      DisputeSnapshot.php
-
-      # saved methods/cards
-      SavedMethodList.php
-      CardTokenizeResult.php
-
-      # virtual accounts
-      VirtualAccountRecord.php
-      VirtualAccountList.php
-      VirtualAccountLedgerEntry.php
-      VirtualAccountLedgerPage.php
-      VirtualAccountWithdrawalResult.php
-      VirtualAccountWithdrawalStatusResult.php
-
-      # watchers / reconcile
-      PollSpec.php
-      ReconcileResult.php
-
-      # payouts
       PayoutResult.php
       PayoutStatusResult.php
+      BulkPayoutResult.php
+      PayoutDestinationResolveResult.php
+      VirtualAccountProvisionResult.php
+      VirtualAccountRecord.php
+      VirtualAccountList.php
+      InboundTransferDecisionResult.php
+      LedgerPage.php
+      TransferResult.php
+      CardRevealSessionResult.php
+      BeneficiaryCreateResult.php
+      BeneficiaryUpdateResult.php
       BeneficiaryList.php
 
-      # frontend config
-      FrontendConfigResult.php
-
-    Events/
-      # generic webhook normalization
-      WebhookEvent.php
-      WebhookHandleResult.php
-
-      # virtual account events (deposits/withdrawals/transfers)
-      VirtualAccountEvent.php
-      VirtualAccountEventBatch.php
-
-      # optional payout/refund normalization
-      PayoutEvent.php
-      RefundEvent.php
-
-  Drivers/
-    AbstractPaymentGatewayDriver.php
-    Concerns/
-      HasConfigSchema.php
-      ResolvesConfig.php
-      MapsStatuses.php
-      RedactsSecrets.php
-      BuildsManifest.php
-
-  Manager/
-    GatewayRegistry.php
-    DriverResolver.php
-    GatewayManager.php
-
   Support/
-    Assert.php
-    Clock.php
-    Redactor.php
-    Signature.php
-    Idempotency.php
-    Pagination.php
-    DedupeScripts.php
-
-  Exceptions/
-    GatewayDriverNotFoundException.php
-    GatewayConfigException.php
-    GatewayCapabilityException.php
-    GatewayRuntimeException.php
-
-  Types/
-    Dict.php
+    WebhookDeduplicator.php
+    EventLockStoreInterface.php
+    ArrayEventLockStore.php
 ```
 
 ---
 
-## 6) Canonical statuses and normalization
+## 4) Driver Implementation Guide
 
-### CanonicalPaymentStatus
+To create a new PayKit driver (e.g. `PayKitStripeDriver`):
 
-Your driver must normalize provider statuses to a closed set.
-
----
-
-## 7) Contracts (Interfaces)
-
-### 7.1 Base driver contract (Required)
-
-Defines the minimum every driver must support: identity, config schema, validation, health check, and redaction.
-
-### 7.2 Manifest provider contract (Strongly recommended)
-
-Allows hosts to sync a snapshot of gateway capabilities for DB‑first checkout filtering.
-
-### 7.3 Availability contract (Optional)
-
-Allow hosts to cheaply hide gateways based on lightweight context (country, user type, etc.).
-
----
-
-## 8) Frontend integration
-
-### Scripts
-
-Drivers may provide `GatewayScript[]` (tags, URLs, placement) for the host to inject.
-
-### UI manifest
-
-Drivers may provide module keys (host maps keys → actual components).
-
----
-
-## 9) Saved methods and card tokenization
-
-Saved methods and tokenization are optional capability contracts.
-
----
-
-## 10) Virtual accounts (correctness requirement)
-
-If a driver supports virtual accounts (`PaymentGatewayVirtualAccountsContract`), it must implement at least one watcher:
-
-* `PaymentGatewayVirtualAccountWebhookWatcherContract` **or**
-* `PaymentGatewayVirtualAccountPollingWatcherContract`
-
-Optionally implement reconciliation.
-
----
-
-## 11) Payouts (general withdrawals)
-
-Optional contracts: payouts + beneficiaries.
-
----
-
-## 12) Virtual cards (Optional)
-
-Optional contract.
-
----
-
-## 13) Generic reconciliation & diagnostics
-
-Optional contracts.
-
----
-
-## 14) The Manager (host-side resolver)
-
-The host uses a registry to map `driver_key` (from the DB model) to a driver class.
-
-### Responsibilities
-
-* Register installed drivers
-* Resolve a driver instance using a `ConfigBag`
-* Optionally trigger manifest sync
+1. Extend `AbstractPaymentGatewayDriver` (or implement `PaymentGatewayDriverContract`).
+2. Implement capability interfaces for features your provider supports:
 
 ```php
-namespace PayKit\Manager;
-
-use PayKit\Contracts\PaymentGatewayDriverContract;
-use Timeax\ConfigSchema\Support\ConfigBag;
-
-...
-```
-
-> Your host app can wrap `make()` with DB resolution (PaymentGateway row → driverKey + config).
-
-### Optional: `Pay` entrypoint (SDK facade)
-
-If you prefer **one import** (and static access) instead of injecting `GatewayManager` everywhere, the SDK includes a
-small entrypoint: `PayKit\Pay`.
-
-It wraps a singleton `GatewayManager`/`GatewayRegistry` and provides:
-
-* `Pay::register($driverKey, DriverClass::class, ...)`
-* `Pay::registerGateway(GatewayRegistration $reg)`
-* `Pay::setProvider($providerClass)`
-* `Pay::driver($driverKey, ConfigBag $config)`
-* `Pay::via($source)`
-* `Pay::list($filter)`
-
-#### Host adapter contract
-
-```php
-namespace PayKit\Contracts;
-
-use Timeax\ConfigSchema\Support\ConfigBag;
-
-interface ProvidesGatewayConfigContract
-{
-    public function gatewayDriverKey(): string;
-
-    public function gatewayConfig(): ConfigBag;
-}
-```
-
-#### Usage (host)
-
-**Register drivers once** (Laravel ServiceProvider, bootstrap file, etc.):
-
-```php
-use PayKit\Pay;
-
-// 1. Basic registration
-Pay::register('stripe', \App\Payments\Drivers\StripeDriver::class);
-
-// 2. Register with a concrete gateway ID (enables Pay::via(12))
-Pay::register(
-    'paystack',
-    \App\Payments\Drivers\PaystackDriver::class,
-    gatewayId: 12,
-    providerClass: \App\Models\PaymentGateway::class
-);
-
-// 3. Set a default provider class for all gateway IDs
-Pay::setProvider(\App\Models\PaymentGateway::class);
-Pay::register('flutterwave', \App\Payments\Drivers\FlutterwaveDriver::class, gatewayId: 'fw_001');
-
-// 4. Register a gateway entry manually (if driver is already registered)
-use PayKit\Payload\Common\GatewayRegistration;
-
-Pay::registerGateway(new GatewayRegistration(
-    gatewayId: 'fw_002',
-    driverKey: 'flutterwave',
-    providerClass: \App\Models\PaymentGateway::class
-));
-```
-
-**Resolve driver** (recommended DX):
-
-```php
-use PayKit\Pay;
-
-// A) From a DB model (implements ProvidesGatewayConfigContract)
-// Returns PaymentGatewayPayDriverContract (asserts pay capability)
-$driver = Pay::via($gatewayModel);
-
-// B) From a gateway ID (requires registration with gatewayId)
-$driver = Pay::via(12);
-$driver = Pay::via('fw_001');
-
-// C) From driver key + config
-$driver = Pay::via('stripe', $config);
-
-// Use the driver
-$result = $driver->initiatePayment($payload);
-```
-
-**List available gateways**:
-
-```php
-use PayKit\Pay;
-use PayKit\Payload\Requests\GatewayListFilter;
-use PayKit\Payload\Common\Currency;
-use PayKit\Payload\Common\Country;
-
-// Filter by currency, country, or features
-$list = Pay::list(new GatewayListFilter(
-    currency: new Currency('USD'),
-    country: new Country('US')
-), includeDriversWithoutGateways: false);
-```
-
-**Manual resolution** (tests / scripts):
-
-```php
-use PayKit\Pay;
-use Timeax\ConfigSchema\Support\ConfigBag;
-
-// Returns PaymentGatewayDriverContract (no capability assertion)
-$driver = Pay::driver('stripe', new ConfigBag(
-    secrets: ['secret_key' => '...'],
-    options: ['environment' => 'test'],
-));
-```
-
----
-
-## 15) Host flows (how it works end‑to‑end)
-
-### Flow A — Install/Enable gateway (manifest sync)
-
-1. Host resolves driver and loads `ConfigBag` from DB.
-2. Host calls `getManifest()`.
-3. Host persists:
-
-* supported currencies/countries
-* feature flags (by contract)
-* any UI metadata
-
-### Flow B — Render checkout page (scripts/UI)
-
-1. Host filters gateways using the stored manifest.
-2. Host injects scripts (if any).
-3. Host maps `UiManifest` keys to frontend components.
-
-### Flow C — Initiate payment
-
-1. Host creates `PaymentInitiateRequest`.
-2. Host calls `initiatePayment()`.
-3. Host renders the `NextAction`.
-
-### Flow D — Verify / Webhook
-
-1. Host calls `verifyPayment()` (pull) **or** validates and parses webhook (push).
-2. Host applies business effect (credit wallet, create orders, etc.).
-
----
-
-## 16) Implementation samples (Stripe)
-
-This section shows a practical implementation pattern using a `StripeDriver` as the subject driver.
-
-### 16.1 Minimal host adapter (DB model)
-
-Your host gateway record should implement `ProvidesGatewayConfigContract`.
-
-```php
-namespace App\Models;
-
-use PayKit\Contracts\ProvidesGatewayConfigContract;
-use Timeax\ConfigSchema\Support\ConfigBag;
-
-final class PaymentGateway /* extends Model */ implements ProvidesGatewayConfigContract
-{
-    public string $driver_key;
-
-    /** @var array<string,mixed> */
-    public array $secrets = [];
-
-    /** @var array<string,mixed> */
-    public array $options = [];
-
-    public function gatewayDriverKey(): string
-    {
-        return $this->driver_key;
-    }
-
-    public function gatewayConfig(): ConfigBag
-    {
-        // secrets should come from encrypted storage in the real host.
-        return new ConfigBag(secrets: $this->secrets, options: $this->options);
-    }
-}
-```
-
-### 16.2 Stripe config schema
-
-A typical Stripe gateway needs:
-
-* `secret_key` (required)
-* `publishable_key` (required)
-* `webhook_secret` (optional unless webhooks are enabled)
-
-```php
-namespace App\Payments\Drivers;
-
+use PayKit\Contracts\PaymentGatewayCardIssuingContract;
+use PayKit\Contracts\PaymentGatewayManifestProviderContract;
+use PayKit\Contracts\PaymentGatewayPayDriverContract;
+use PayKit\Contracts\PaymentGatewayPayoutsContract;
 use PayKit\Drivers\AbstractPaymentGatewayDriver;
-use PayKit\Drivers\Concerns\HasConfigSchema;
-use PayKit\Drivers\Concerns\ResolvesConfig;
-use Timeax\ConfigSchema\Schema\ConfigField;
-use Timeax\ConfigSchema\Support\ConfigBag;
-use Timeax\ConfigSchema\Support\ConfigValidationResult;
 
-final class StripeDriver extends AbstractPaymentGatewayDriver
+final class StripeDriver extends AbstractPaymentGatewayDriver implements
+    PaymentGatewayPayDriverContract,
+    PaymentGatewayPayoutsContract,
+    PaymentGatewayCardIssuingContract,
+    PaymentGatewayManifestProviderContract
 {
-    use ResolvesConfig;
-    use HasConfigSchema;
-
     public function driverKey(): string
     {
         return 'stripe';
     }
 
-    /** @return array<int,ConfigField> */
-    protected function configFields(): array
-    {
-        return [
-            new ConfigField(
-                name: 'secret_key',
-                label: 'Stripe Secret Key',
-                required: true,
-                secret: true,
-            ),
-            new ConfigField(
-                name: 'publishable_key',
-                label: 'Stripe Publishable Key',
-                required: true,
-            ),
-            new ConfigField(
-                name: 'webhook_secret',
-                label: 'Webhook Signing Secret',
-                required: false,
-                secret: true,
-            ),
-        ];
-    }
-
-    public function validateConfig(?ConfigBag $config = null): ConfigValidationResult
-    {
-        $cfg = $this->resolveConfig($config);
-        return $this->configSchema()->validate($cfg);
-    }
+    // Implement contract methods accepting DTOs and returning response DTOs
 }
 ```
 
-> Notes:
->
-> * `HasConfigSchema::validateConfig(...)` uses `resolveConfig(...)` if available and validates required fields.
-> * Config values live in `ConfigBag` `secrets` / `options` — the driver reads from the resolved config.
-
-### 16.3 Stripe health check (required)
-
-PayKit requires drivers to implement their own health check (no default stub).
+3. Register your driver with `Pay`:
 
 ```php
-use Timeax\ConfigSchema\Support\ConfigBag;
-use PayKit\Payload\Common\HealthCheckResult;
-
-final class StripeDriver extends AbstractPaymentGatewayDriver
-{
-    // ... config schema above
-
-    public function healthCheck(?ConfigBag $config = null): HealthCheckResult
-    {
-        $cfg = $this->resolveConfig($config);
-
-        // Pseudo-check: confirm we have the required keys.
-        // Real driver might do a lightweight API call (e.g. retrieve account / balance).
-        $secret = $cfg->secret('secret_key');
-
-        if (!$secret) {
-            return HealthCheckResult::fail('Missing secret_key');
-        }
-
-        return HealthCheckResult::ok('Stripe config looks valid');
-    }
-}
-```
-
-### 16.4 Initiate payment (NextAction)
-
-Most Stripe flows return an inline action using a client secret.
-
-```php
-namespace App\Payments\Drivers;
-
-use PayKit\Contracts\PaymentGatewayPaymentsContract;
-use Timeax\ConfigSchema\Support\ConfigBag;
-use PayKit\Payload\Common\CanonicalPaymentStatus;
-use PayKit\Payload\Requests\PaymentInitiateRequest;
-use PayKit\Payload\Responses\InlineAction;
-use PayKit\Payload\Responses\NextAction;
-use PayKit\Payload\Responses\PaymentInitiateResult;
-
-final class StripeDriver extends AbstractPaymentGatewayDriver implements PaymentGatewayPaymentsContract
-{
-    // ... traits + config schema + healthCheck
-
-    public function initiatePayment(PaymentInitiateRequest $request, ?ConfigBag $config = null): PaymentInitiateResult
-    {
-        $cfg = $this->resolveConfig($config);
-
-        // Pseudo: create a PaymentIntent and return client secret.
-        // $clientSecret = $this->stripe($cfg)->paymentIntents->create([...])->client_secret;
-        $clientSecret = 'pi_xxx_secret_yyy';
-
-        $action = new InlineAction(
-            entry: 'stripe.checkout',
-            props: [
-                'publishableKey' => $cfg->secret('publishable_key'),
-                'clientSecret' => $clientSecret,
-                'reference' => (string) $request->reference,
-            ],
-        );
-
-        return new PaymentInitiateResult(
-            reference: $request->reference,
-            providerRef: null,
-            action: new NextAction($action),
-            raw: null,
-        );
-    }
-
-    public function mapStatus(mixed $rawPayload): CanonicalPaymentStatus
-    {
-        // Pseudo mapping. A real driver maps provider status fields to canonical enum.
-        return CanonicalPaymentStatus::processing;
-    }
-}
-```
-
-### 16.5 Scripts + UI manifest
-
-Stripe typically needs `https://js.stripe.com/v3/` on checkout pages.
-
-```php
-use PayKit\Contracts\PaymentGatewayScriptsContract;
-use Timeax\ConfigSchema\Support\ConfigBag;
-use PayKit\Payload\Common\GatewayScript;
-use PayKit\Payload\Common\ScriptLocation;
-
-final class StripeDriver extends AbstractPaymentGatewayDriver implements PaymentGatewayScriptsContract
-{
-    public function getScripts(?ConfigBag $config = null): array
-    {
-        return [
-            new GatewayScript(
-                src: 'https://js.stripe.com/v3/',
-                location: ScriptLocation::head,
-                async: true,
-            ),
-        ];
-    }
-}
-```
-
-UI modules are host-mapped keys (the SDK never ships React/Vue components).
-
-```php
-use PayKit\Contracts\PaymentGatewayUiContract;
-use PayKit\Payload\Common\UiEntryDescriptor;
-use PayKit\Payload\Common\UiManifest;
-use PayKit\Payload\Common\UiModuleDescriptor;
-
-final class StripeDriver extends AbstractPaymentGatewayDriver implements PaymentGatewayUiContract
-{
-    public function uiManifest(): UiManifest
-    {
-        return new UiManifest([
-            new UiModuleDescriptor(
-                id: 'stripe.settings',
-                entry: new UiEntryDescriptor(key: 'stripe.settings'),
-            ),
-            new UiModuleDescriptor(
-                id: 'stripe.checkout',
-                entry: new UiEntryDescriptor(key: 'stripe.checkout'),
-            ),
-        ]);
-    }
-}
-```
-
-### 16.6 Webhook verification + parsing
-
-If implementing `PaymentGatewayWebhooksContract`, the driver must verify signature and parse to a normalized event
-payload.
-
-```php
-use PayKit\Contracts\PaymentGatewayWebhooksContract;
-use Timeax\ConfigSchema\Support\ConfigBag;
-use PayKit\Payload\Events\WebhookEvent;
-use PayKit\Payload\Requests\WebhookRequest;
-use PayKit\Payload\Responses\WebhookVerifyResult;
-
-final class StripeDriver extends AbstractPaymentGatewayDriver implements PaymentGatewayWebhooksContract
-{
-    public function verifyWebhook(WebhookRequest $request, ?ConfigBag $config = null): WebhookVerifyResult
-    {
-        $cfg = $this->resolveConfig($config);
-
-        // Pseudo signature validation. Real driver uses Stripe signature header + webhook secret.
-        $secret = $cfg->secret('webhook_secret');
-        if (!$secret) {
-            return WebhookVerifyResult::fail('Missing webhook secret');
-        }
-
-        return WebhookVerifyResult::ok();
-    }
-
-    public function parseWebhook(WebhookRequest $request, ?ConfigBag $config = null): WebhookEvent
-    {
-        // Pseudo parse. Real driver decodes JSON and normalizes event type + provider refs.
-        return new WebhookEvent(
-            type: 'payment.succeeded',
-            reference: null,
-            providerRef: null,
-            status: null,
-            raw: $request->payload,
-        );
-    }
-}
-```
-
-### 16.7 Stripe manifest (sync-time discovery)
-
-The host calls this during install/enable/config update and persists the result.
-
-```php
-use PayKit\Contracts\PaymentGatewayManifestProviderContract;
-use Timeax\ConfigSchema\Support\ConfigBag;
-use PayKit\Payload\Common\GatewayFeatureSet;
-use PayKit\Payload\Common\GatewayManifest;
-use PayKit\Payload\Common\GatewaySupportMatrix;
-
-final class StripeDriver extends AbstractPaymentGatewayDriver implements PaymentGatewayManifestProviderContract
-{
-    public function getManifest(?ConfigBag $config = null): GatewayManifest
-    {
-        // Allowed to call provider APIs here if needed (sync-time only).
-        // For sample: hard-coded.
-
-        $features = new GatewayFeatureSet(
-            payments: true,
-            refunds: true,
-            savedMethods: true,
-            webhooks: true,
-            payouts: false,
-            virtualAccounts: false,
-        );
-
-        $support = GatewaySupportMatrix::fromSimple(
-            countries: ['US', 'GB', 'NG'],
-            currencies: ['USD', 'GBP', 'NGN'],
-        );
-
-        return new GatewayManifest(
-            driverKey: $this->driverKey(),
-            features: $features,
-            support: $support,
-            ui: $this->uiManifest(),
-            scripts: $this->getScripts(),
-        );
-    }
-}
+Pay::register('stripe', StripeDriver::class);
 ```
 
 ---
 
-## 17) Watchouts (implementation risks)
+## 📄 License
 
-### A) Payload serialization
-
-* No closures, resources, SDK client objects, or open streams.
-* Prefer scalar/array/payload-only fields.
-* Keep raw provider payloads as `array|string|null`.
-
-### B) UI manifest complexity
-
-* Backend returns module/component keys (+ optional props/schema)
-* Host frontend owns a mapping registry (`"stripe.settings" -> <StripeSettings />`)
-* Avoid backend-driven UI layout instructions.
-
-### C) Versioning payloads
-
-* Adding optional fields: **minor**.
-* Renaming/removing/changing meaning: **major**.
-* Prefer nullable additions to preserve driver compatibility.
+The PayKit Gateway SDK is open-sourced software licensed under the [MIT license](LICENSE).
