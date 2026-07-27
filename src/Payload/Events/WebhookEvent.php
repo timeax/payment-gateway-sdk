@@ -2,6 +2,7 @@
 
 namespace PayKit\Payload\Events;
 
+use Elqora\Interactions\Contracts\Interaction;
 use JsonSerializable;
 use PayKit\Payload\Common\CanonicalPaymentStatus;
 use PayKit\Payload\Common\CanonicalPayoutStatus;
@@ -18,22 +19,18 @@ final readonly class WebhookEvent implements JsonSerializable
      * @param array<string,mixed>|string|null $rawProviderPayload
      */
     public function __construct(
-        public WebhookEventSubject     $subject,
-        public WebhookEventType        $type,
-
-        public ?MonetaryBreakdown      $money = null,
-
-        public ?Reference              $reference = null,
-        public ?ProviderRef            $providerRef = null,
-
+        public WebhookEventSubject $subject,
+        public WebhookEventType $type,
+        public ?MonetaryBreakdown $money = null,
+        public ?Reference $reference = null,
+        public ?ProviderRef $providerRef = null,
         public ?CanonicalPaymentStatus $paymentStatus = null,
-        public ?CanonicalRefundStatus  $refundStatus = null,
-        public ?CanonicalPayoutStatus  $payoutStatus = null,
-
-        ?Metadata                      $meta = null,
-        public array|string|null       $rawProviderPayload = null,
-    )
-    {
+        public ?CanonicalRefundStatus $refundStatus = null,
+        public ?CanonicalPayoutStatus $payoutStatus = null,
+        public ?Interaction $interaction = null,
+        ?Metadata $meta = null,
+        public array|string|null $rawProviderPayload = null,
+    ) {
         $this->meta = $meta ?? new Metadata([]);
     }
 
@@ -42,18 +39,15 @@ final readonly class WebhookEvent implements JsonSerializable
         return [
             'subject' => $this->subject->value,
             'type' => $this->type->value,
-
             'money' => ($this->money && !$this->money->isEmpty())
                 ? $this->money->jsonSerialize()
                 : null,
-
             'reference' => $this->reference?->toString(),
             'providerRef' => $this->providerRef?->toString(),
-
             'paymentStatus' => $this->paymentStatus?->value,
             'refundStatus' => $this->refundStatus?->value,
             'payoutStatus' => $this->payoutStatus?->value,
-
+            'interaction' => $this->interaction?->toArray(),
             'meta' => $this->meta->toArray(),
             'rawProviderPayload' => $this->rawProviderPayload,
         ];

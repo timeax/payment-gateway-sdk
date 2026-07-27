@@ -18,9 +18,8 @@ class GatewayRuntimeException extends RuntimeException
     }
 
     /** @param array<string,mixed> $context */
-    public static function withContext(string $message, array $context = [], int $code = 0, ?Throwable $previous = null): static
+    public static function withContext(string $message, array $context = [], int $code = 0, ?Throwable $previous = null): self
     {
-        return new static($message, $context, $code, $previous);
+        return new self($message, $context, $code, $previous);
     }
 }
-

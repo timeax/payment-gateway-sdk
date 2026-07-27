@@ -2,6 +2,7 @@
 
 namespace PayKit\Payload\Responses;
 
+use Elqora\Interactions\Contracts\Interaction;
 use JsonSerializable;
 
 final readonly class CardTokenizeResult implements JsonSerializable
@@ -15,8 +16,8 @@ final readonly class CardTokenizeResult implements JsonSerializable
      * @param array<string,mixed>|string|null $rawProviderPayload
      */
     public function __construct(
-        public string            $token,
-        public ?NextAction       $nextAction = null,
+        public string $token,
+        public ?Interaction $interaction = null,
         public array|string|null $rawProviderPayload = null,
     ) {}
 
@@ -24,11 +25,8 @@ final readonly class CardTokenizeResult implements JsonSerializable
     {
         return [
             'token' => $this->token,
-            'nextAction' => $this->nextAction?->jsonSerialize(),
+            'interaction' => $this->interaction?->toArray(),
             'rawProviderPayload' => $this->rawProviderPayload,
         ];
     }
 }
-
-
-

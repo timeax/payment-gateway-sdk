@@ -29,8 +29,9 @@ trait HasConfigSchema
 
         if (!$cfg) {
             // If resolveConfig() exists it would have thrown already; this is a last-resort fallback.
-            return ConfigValidationResult::fail()
-                ->addError('config', 'Gateway configuration missing.');
+            return ConfigValidationResult::fail([
+                'config' => ['Gateway configuration missing.'],
+            ]);
         }
 
         $schema = $this->configSchema();
@@ -69,9 +70,7 @@ trait HasConfigSchema
 
 
         return $errors
-            ? ConfigValidationResult::fail()->addErrors($errors)
+            ? ConfigValidationResult::fail($errors)
             : ConfigValidationResult::ok();
     }
 }
-
-

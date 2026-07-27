@@ -11,10 +11,20 @@
     "dto"
   ],
   "require": {
-    "php": "^8.1",
+    "php": "^8.2",
     "ext-json": "*",
+    "elqora/interactions": "*@dev",
     "timeax/ui-config-schema": "dev-main"
   },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../elqora/interactions",
+      "options": {
+        "symlink": true
+      }
+    }
+  ],
   "autoload": {
     "psr-4": {
       "PayKit\\": "src/"
@@ -37,6 +47,6 @@
     "sort-packages": true,
     "optimize-autoloader": true
   },
-  "minimum-stability": "stable",
+  "minimum-stability": "dev",
   "prefer-stable": true
 }

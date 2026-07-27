@@ -2,16 +2,14 @@
 
 namespace PayKit\Contracts;
 
+use Elqora\Interactions\Contracts\Interaction;
 use Timeax\ConfigSchema\Support\ConfigBag;
 use PayKit\Payload\Events\VirtualAccountEventBatch;
 use PayKit\Payload\Requests\PollVirtualAccountEventsQuery;
-use PayKit\Payload\Responses\PollSpec;
 
 interface PaymentGatewayVirtualAccountPollingWatcherContract
 {
-    public function pollSpec(?ConfigBag $config = null): PollSpec;
+    public function pollSpec(?ConfigBag $config = null): ?Interaction;
 
     public function pollVirtualAccountEvents(PollVirtualAccountEventsQuery $query, ?ConfigBag $config = null): VirtualAccountEventBatch;
 }
-
-

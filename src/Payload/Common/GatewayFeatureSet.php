@@ -23,16 +23,28 @@ final readonly class GatewayFeatureSet implements JsonSerializable
         public bool $cardTokenization = false,
 
         public bool $virtualAccounts = false,
-        public bool $virtualAccountLedger = false,
-        public bool $virtualAccountWithdrawals = false,
+        public bool $virtualAccountsReusable = false,
+        public bool $virtualAccountsDynamic = false,
         public bool $virtualAccountWebhookWatcher = false,
         public bool $virtualAccountPollingWatcher = false,
         public bool $virtualAccountReconcile = false,
 
         public bool $payouts = false,
+        public bool $bulkPayouts = false,
+        public bool $payoutDestinationResolver = false,
         public bool $beneficiaries = false,
+        public bool $inboundTransferApproval = false,
 
-        public bool $virtualCards = false,
+        public bool $balanceAccounts = false,
+        public bool $ledger = false,
+        public bool $internalTransfers = false,
+
+        public bool $cardsIssuing = false,
+        public bool $cardsManagement = false,
+        public bool $cardsControls = false,
+        public bool $cardsTransactions = false,
+        public bool $cardsAuthWatcher = false,
+        public bool $cardsSensitiveReveal = false,
 
         public bool $reconcile = false,
         public bool $diagnostics = false,
@@ -43,4 +55,3 @@ final readonly class GatewayFeatureSet implements JsonSerializable
         return get_object_vars($this);
     }
 }
-

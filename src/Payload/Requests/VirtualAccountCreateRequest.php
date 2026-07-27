@@ -5,8 +5,12 @@ namespace PayKit\Payload\Requests;
 use JsonSerializable;
 use PayKit\Payload\Common\Country;
 use PayKit\Payload\Common\Currency;
+use PayKit\Payload\Common\CustomerIdentity;
 use PayKit\Payload\Common\Metadata;
+use PayKit\Payload\Common\Money;
 use PayKit\Payload\Common\Reference;
+use PayKit\Payload\Common\VirtualAccountPurpose;
+use PayKit\Payload\Common\VirtualAccountUsage;
 
 final readonly class VirtualAccountCreateRequest implements JsonSerializable
 {
@@ -17,17 +21,16 @@ final readonly class VirtualAccountCreateRequest implements JsonSerializable
      */
     public function __construct(
         public Reference $reference,
-        public string    $ownerKey,
-
+        public string $ownerKey,
+        public VirtualAccountPurpose $purpose = VirtualAccountPurpose::collection,
+        public VirtualAccountUsage $usage = VirtualAccountUsage::reusable,
         public ?Currency $currency = null,
-        public ?Country  $country = null,
-
-        public ?string   $customerName = null,
-        public ?string   $customerEmail = null,
-        public ?string   $customerPhone = null,
-
-        ?Metadata        $meta = null,
-        public array     $context = [],
+        public ?Country $country = null,
+        public ?CustomerIdentity $customer = null,
+        public ?Money $expectedAmount = null,
+        public ?string $expiresAt = null, // ISO string
+        ?Metadata $meta = null,
+        public array $context = [],
     ) {
         $this->meta = $meta ?? new Metadata([]);
     }
@@ -37,14 +40,15 @@ final readonly class VirtualAccountCreateRequest implements JsonSerializable
         return [
             'reference' => $this->reference->toString(),
             'ownerKey' => $this->ownerKey,
+            'purpose' => $this->purpose->value,
+            'usage' => $this->usage->value,
             'currency' => $this->currency?->toString(),
             'country' => $this->country?->toString(),
-            'customerName' => $this->customerName,
-            'customerEmail' => $this->customerEmail,
-            'customerPhone' => $this->customerPhone,
+            'customer' => $this->customer?->jsonSerialize(),
+            'expectedAmount' => $this->expectedAmount?->toArray(),
+            'expiresAt' => $this->expiresAt,
             'meta' => $this->meta->toArray(),
             'context' => $this->context,
         ];
     }
 }
-

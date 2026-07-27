@@ -4,7 +4,7 @@ namespace PayKit\Payload\Requests;
 
 use JsonSerializable;
 use PayKit\Payload\Common\Metadata;
-use PayKit\Payload\Common\PayoutDestination;
+use PayKit\Payload\Common\PayoutDestinationPayload;
 
 final readonly class BeneficiaryCreateRequest implements JsonSerializable
 {
@@ -14,12 +14,11 @@ final readonly class BeneficiaryCreateRequest implements JsonSerializable
      * @param array<string,mixed> $context
      */
     public function __construct(
-        public string            $name,
-        public PayoutDestination $destination,
-        ?Metadata                $meta = null,
-        public array             $context = [],
-    )
-    {
+        public string $name,
+        public PayoutDestinationPayload $destination,
+        ?Metadata $meta = null,
+        public array $context = [],
+    ) {
         $this->meta = $meta ?? new Metadata([]);
     }
 
@@ -33,4 +32,3 @@ final readonly class BeneficiaryCreateRequest implements JsonSerializable
         ];
     }
 }
-

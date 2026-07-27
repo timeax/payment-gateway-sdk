@@ -10,11 +10,11 @@ final readonly class PayoutDestinationSnapshot implements JsonSerializable
      * @param array<string,mixed> $meta
      */
     public function __construct(
-        public string          $methodKey,
-        public string          $identifier,  // acct number / wallet address / phone / email
-        public ?string         $accountName = null,
+        public string $methodKey,
+        public string $identifier,  // acct number / wallet address / phone / email
         public PayoutDestination $destination,
-        public array           $meta = [],
+        public ?string $accountName = null,
+        public array $meta = [],
     ) {}
 
     public function jsonSerialize(): array
@@ -28,4 +28,3 @@ final readonly class PayoutDestinationSnapshot implements JsonSerializable
         ];
     }
 }
-

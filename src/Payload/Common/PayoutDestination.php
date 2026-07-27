@@ -6,26 +6,24 @@ use JsonSerializable;
 
 final readonly class PayoutDestination implements JsonSerializable
 {
-    /**
-     * @param array<string,mixed> $details provider-specific destination fields (opaque to SDK)
-     */
     public function __construct(
-        public PayoutMethod $method,
-        public array        $details = [],
-        public ?Currency    $currency = null,
-        public ?Country     $country = null,
-    )
+        public PayoutDestinationPayload $payload,
+        public ?Currency $currency = null,
+        public ?Country $country = null,
+    ) {}
+
+    public function method(): PayoutMethod
     {
+        return $this->payload->method();
     }
 
     public function jsonSerialize(): array
     {
         return [
-            'method' => $this->method->value,
-            'details' => $this->details,
+            'method' => $this->method()->value,
+            'payload' => $this->payload->jsonSerialize(),
             'currency' => $this->currency?->toString(),
             'country' => $this->country?->toString(),
         ];
     }
 }
-

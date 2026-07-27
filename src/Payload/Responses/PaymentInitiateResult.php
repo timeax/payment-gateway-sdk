@@ -2,6 +2,7 @@
 
 namespace PayKit\Payload\Responses;
 
+use Elqora\Interactions\Contracts\Interaction;
 use JsonSerializable;
 use PayKit\Payload\Common\CanonicalPaymentStatus;
 use PayKit\Payload\Common\ProviderRef;
@@ -13,14 +14,12 @@ final readonly class PaymentInitiateResult implements JsonSerializable
      * @param array<string,mixed>|string|null $rawProviderPayload
      */
     public function __construct(
-        public Reference              $reference,
-        public ?ProviderRef           $providerRef,
+        public Reference $reference,
+        public ?ProviderRef $providerRef,
         public CanonicalPaymentStatus $status,
-        public NextAction             $nextAction,
-        public array|string|null      $rawProviderPayload = null,
-    )
-    {
-    }
+        public ?Interaction $interaction = null,
+        public array|string|null $rawProviderPayload = null,
+    ) {}
 
     public function jsonSerialize(): array
     {
@@ -28,9 +27,8 @@ final readonly class PaymentInitiateResult implements JsonSerializable
             'reference' => $this->reference->toString(),
             'providerRef' => $this->providerRef?->toString(),
             'status' => $this->status->value,
-            'nextAction' => $this->nextAction->jsonSerialize(),
+            'interaction' => $this->interaction?->toArray(),
             'rawProviderPayload' => $this->rawProviderPayload,
         ];
     }
 }
-

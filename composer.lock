@@ -4,8 +4,60 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "539b12dd97e1303febbb6080674eb317",
+    "content-hash": "f3a1b0621bb9053c3d4f67e482cfe445",
     "packages": [
+        {
+            "name": "elqora/interactions",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../elqora/interactions",
+                "reference": "4d7cd313490bdb50b431755d718f803123f0f6d7"
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^11.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Elqora\\Interactions\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Elqora\\Interactions\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/phpunit"
+                ],
+                "analyse": [
+                    "vendor/bin/phpstan analyse"
+                ],
+                "check": [
+                    "@validate",
+                    "@test",
+                    "@analyse"
+                ],
+                "validate": [
+                    "composer validate --strict"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Shared Elqora interaction system protocol package",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
         {
             "name": "timeax/ui-config-schema",
             "version": "dev-main",
@@ -1885,14 +1937,15 @@
         }
     ],
     "aliases": [],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "stability-flags": {
+        "elqora/interactions": 20,
         "timeax/ui-config-schema": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.1",
+        "php": "^8.2",
         "ext-json": "*"
     },
     "platform-dev": {},
